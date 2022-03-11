@@ -1,0 +1,7 @@
+- Main attributes are energy and speed.
+- Spawns every T time steps.
+- On spawn it chooses a random energy and direction to move.
+- Speed its proportional to its energy.
+- When it detects a slime close by, it changes its direction.
+- Bigger slimes can be detected more easily (bigger detection radius).
+- A maximum on M instances of food can exist at the same time.

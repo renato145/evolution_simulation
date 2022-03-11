@@ -1,16 +1,10 @@
 //! # Evolution Simulation
-//! 
+//!
 //! This simulation consist on 2 interacting entities: food and slime.
-//! 
+//!
 //! ## Food
-//! - Main attributes are energy and speed.
-//! - Spawns every T time steps.
-//! - On spawn it chooses a random energy and direction to move.
-//! - Speed its proportional to its energy.
-//! - When it detects a slime close by, it changes its direction.
-//! - Bigger slimes can be detected more easily (bigger detection radius).
-//! - A maximum on M instances of food can exist at the same time.
-//! 
+#![doc = include_str!("../docs/food.md")]
+//!
 //! ## Slime
 //! The main evolving creature.
 //! - Main attributes are energy and size.
@@ -22,7 +16,7 @@
 //! - When meeting another slime, if energy is at least M and the difference
 //!   is not less than the smaller slime's energy, a new slime will spawn.
 //! - If no food has been consumed on the last W time steps, the slime will die.
-//! 
+//!
 //! ### Slime evolution (skills)
 //! - There are 3 evolving paths, the fist time it evolves the slime will randomly
 //!   choose a path and will follow it on next evolutions.
@@ -35,6 +29,8 @@
 //!   2) Efficiency: reduces the energy needed to move around.
 //!   3) Jumper: increases the range of its jump.
 
-mod world;
+pub mod food;
+pub mod world;
+pub mod utils;
 
 pub use world::*;
