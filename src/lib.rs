@@ -35,3 +35,6 @@
 //!   2) Efficiency: reduces the energy needed to move around.
 //!   3) Jumper: increases the range of its jump.
 
+mod world;
+
+pub use world::*;
