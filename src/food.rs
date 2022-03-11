@@ -1,6 +1,6 @@
 //! # Food entity.
 #![doc = include_str!("../docs/food.md")]
-use crate::utils::random_screen_position;
+use crate::utils::{random_screen_position, wrap_around};
 use macroquad::prelude::*;
 use macroquad::rand::gen_range;
 use std::f32::consts::PI;
@@ -63,19 +63,31 @@ impl FoodController {
         self.last_spawn_time = get_time();
     }
 
-    pub fn spawn(&mut self) {
+    pub fn spawn_one(&mut self) {
         self.population
             .push(Food::spawn(self.energy_range, self.speed_range));
     }
 
     pub fn spawn_n(&mut self, n: usize) {
         let n = self.limit.saturating_sub(self.population.len()).min(n);
-        (0..n).for_each(|_| self.spawn())
+        (0..n).for_each(|_| self.spawn_one())
+    }
+
+    /// Check timer to spawn one
+    pub fn check_spawn(&mut self) {
+        let t = get_time();
+        if (t - self.last_spawn_time) >= self.spawn_time {
+            if self.limit > self.population.len() {
+                self.spawn_one();
+            }
+            self.last_spawn_time = t;
+        }
     }
 
     pub fn update_food_positions(&mut self) {
         for food in self.population.iter_mut() {
             food.position += food.speed;
+            food.position = wrap_around(&food.position);
         }
     }
 }
