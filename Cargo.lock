@@ -118,6 +118,7 @@ dependencies = [
 name = "evolution_simulation"
 version = "0.1.0"
 dependencies = [
+ "human_format",
  "macroquad",
 ]
 
@@ -151,6 +152,12 @@ name = "hound"
 version = "3.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a164bb2ceaeff4f42542bdb847c41517c78a60f5649671b2a07312b6e117549"
+
+[[package]]
+name = "human_format"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "86cce260d758a9aa3d7c4b99d55c815a540f8a37514ba6046ab6be402a157cb0"
 
 [[package]]
 name = "image"

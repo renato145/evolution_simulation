@@ -55,9 +55,9 @@ impl SkillType {
 
 #[derive(Clone)]
 pub struct Skills {
-    vision: usize,
-    efficiency: usize,
-    jumper: usize,
+    pub vision: usize,
+    pub efficiency: usize,
+    pub jumper: usize,
 }
 
 impl From<(usize, usize, usize)> for Skills {

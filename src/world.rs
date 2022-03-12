@@ -2,6 +2,7 @@ use crate::{
     food::{FoodController, FOOD_SIZE},
     slime::{SlimeController, SlimeState},
 };
+use human_format::Formatter;
 use macroquad::{
     hash,
     prelude::*,
@@ -89,14 +90,38 @@ impl World {
                     YELLOW,
                 );
                 let text = format!("{:.0}", slime.energy());
-                let size = measure_text(&text, None, 25, 1.0);
+                const ENERGY_FONT_SIZE: u16 = 25;
+                let size = measure_text(&text, None, ENERGY_FONT_SIZE, 1.0);
                 draw_text(
                     &format!("{:.0}", slime.energy()),
                     slime.position.x - size.width.div(2.0),
-                    slime.position.y - 10.0,
-                    25.0,
+                    (slime.position.y - 10.0).max(0.0),
+                    ENERGY_FONT_SIZE as f32,
                     WHITE,
                 );
+                // Draw skill levels
+                const SKILLS_FONT_SIZE: u16 = 25;
+                const SKILLS_TEXT_PAD: f32 = 20.0;
+                let texts = [
+                    slime.skills.vision.to_string(),
+                    slime.skills.efficiency.to_string(),
+                    slime.skills.jumper.to_string(),
+                ];
+                let widths = texts
+                    .iter()
+                    .map(|s| measure_text(s, None, SKILLS_FONT_SIZE, 1.0).width)
+                    .collect::<Vec<_>>();
+                let width = widths.iter().sum::<f32>() + 2.0 * SKILLS_TEXT_PAD;
+                let mut x = slime.position.x - width / 2.0;
+                let y = (slime.position.y + 25.0).min(screen_height());
+                texts
+                    .iter()
+                    .zip([ORANGE, PURPLE, DARKGREEN])
+                    .zip(widths)
+                    .for_each(|((text, color), width)| {
+                        draw_text(text, x, y, SKILLS_FONT_SIZE as f32, color);
+                        x += width + SKILLS_TEXT_PAD;
+                    });
             }
         });
     }
@@ -104,9 +129,13 @@ impl World {
     /// Draws world status on top right corner of the screen
     fn draw_status(&self) {
         const FONT_SIZE: u16 = 25;
+        let time = Formatter::new()
+            .with_decimals(1)
+            .with_separator("")
+            .format(self.time as f64);
         let texts = [
             format!("Fps: {}s", get_fps()),
-            format!("Time: {:.0}", self.time), // TODO: format number nicer
+            format!("Time: {}", time),
             format!("Slimes: {}", self.slime_controller.population.len()),
             format!("Food: {}", self.food_controller.population.len()),
         ];
