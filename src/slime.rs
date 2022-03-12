@@ -1,5 +1,7 @@
 //! # Slime entity.
 #![doc = include_str!("../docs/slime.md")]
+use std::ops::Div;
+
 use crate::{
     food::Food,
     utils::{get_angle_direction, random_screen_position, wrap_around},
@@ -140,7 +142,8 @@ impl Slime {
 
     fn apply_movement_cost(&mut self) {
         if self.energy > FREE_MOVEMENT_TH {
-            self.add_energy(-self.step_cost);
+            let mult = (self.energy / 100.0).max(1.0);
+            self.add_energy(-self.step_cost * mult);
         }
     }
 
