@@ -75,7 +75,7 @@ impl FoodController {
         (0..n).for_each(|_| self.spawn_one())
     }
 
-    /// Check timer to spawn one food instance
+    /// Check timer to spawn one food instance.
     pub fn check_spawn(&mut self) {
         let t = get_time();
         if (t - self.last_spawn_time) >= self.spawn_time {

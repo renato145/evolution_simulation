@@ -25,6 +25,7 @@ impl World {
 
     pub async fn run(mut self) {
         self.food_controller.reset_time();
+        self.slime_controller.reset_time();
         loop {
             clear_background(BLACK);
 
@@ -44,6 +45,7 @@ impl World {
     /// Draws world status on top right corner of the screen
     fn draw_status(&self) {
         let texts = [
+            format!("Fps: {}s", get_fps()),
             format!("Time: {:.1}s", get_time()),
             format!("Slimes: {}", self.slime_controller.population.len()),
             format!("Food: {}", self.food_controller.population.len()),

@@ -9,7 +9,7 @@ use macroquad::prelude::*;
 /// When slime is below this threshold, its free to move without energy cost.
 const FREE_MOVEMENT_TH: f32 = 5.0;
 /// How often (seconds) slimes consume 1 energy.
-const TIME_COST: f64 = 0.5;
+const TIME_COST_FREQ: f64 = 0.5;
 /// Energy required to jump.
 const JUMP_COST: f32 = 5.0;
 /// Every time a slime collects this amount of energy, it can evolve.
@@ -90,6 +90,7 @@ pub struct SlimeController {
     initial_energy: f32,
     initial_step_cost: f32,
     initial_vision_range: f32,
+    last_time_cost: f64,
     pub population: Vec<Slime>,
 }
 
@@ -105,6 +106,7 @@ impl SlimeController {
             initial_energy,
             initial_step_cost,
             initial_vision_range,
+            last_time_cost: get_time(),
             population: Vec::new(),
         }
     }
@@ -122,10 +124,29 @@ impl SlimeController {
         (0..n).for_each(|_| self.spawn_one())
     }
 
-    /// For each slime:
+    /// Check timer for time cost.
+    pub fn check_time_cost(&mut self) {
+        let t = get_time();
+        if (t - self.last_time_cost) >= TIME_COST_FREQ {
+            let mut i = 0;
+            while i < self.population.len() {
+                self.population[i].add_energy(-1.0);
+                if self.population[i].energy <= 0.0 {
+                    self.population.remove(i);
+                } else {
+                    i += 1;
+                }
+            }
+            self.last_time_cost = t;
+        }
+    }
+
+    /// Check time cost, then, for each slime:
     /// 1. Update slime position to get close its nearest food in vision range.
     /// 2. If on top a food, eat it.
+    /// 3. If didn't eat check if slime can jump.
     pub fn update_step(&mut self, foods: &mut Vec<Food>) {
+		self.check_time_cost();
         for slime in self.population.iter_mut() {
             // Step 1: Move
             if let Some((nearest_food, distance)) = slime.nearest_food(foods) {
@@ -147,6 +168,10 @@ impl SlimeController {
                 }
             }
         }
+    }
+
+    pub fn reset_time(&mut self) {
+        self.last_time_cost = get_time();
     }
 }
 
