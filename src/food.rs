@@ -86,10 +86,26 @@ impl FoodController {
         }
     }
 
-    pub fn update_food_positions(&mut self) {
+    pub fn update_positions(&mut self) {
         for food in self.population.iter_mut() {
             food.position += food.speed;
             food.position = wrap_around(&food.position);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    impl Food {
+        pub fn create_test(position: Vec2) -> Self {
+            Self {
+                position,
+                energy: 1.0,
+                speed_factor: 1.0,
+                speed: vec2(0.0, 0.0),
+            }
         }
     }
 }
