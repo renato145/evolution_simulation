@@ -10,7 +10,7 @@ pub const FOOD_SIZE: f32 = 2.0;
 pub struct Food {
     pub position: Vec2,
     pub energy: f32,
-    speed_factor: f32,
+    _speed_factor: f32,
     speed: Vec2,
 }
 
@@ -27,26 +27,27 @@ impl Food {
         Self {
             position: random_screen_position(),
             energy,
-            speed_factor,
+            _speed_factor: speed_factor,
             speed,
         }
     }
 }
 
 pub struct FoodController {
-    /// Spawn time in seconds
-    spawn_time: f64,
+    /// Spawn time
+    spawn_time: f32,
     /// Maximum number of food instances that can exist at the same time.
     limit: usize,
     energy_range: (f32, f32),
     speed_range: (f32, f32),
-    last_spawn_time: f64,
+    time: f32,
+    last_spawn_time: f32,
     pub population: Vec<Food>,
 }
 
 impl FoodController {
     pub fn new(
-        spawn_time: f64,
+        spawn_time: f32,
         limit: usize,
         energy_range: (f32, f32),
         speed_range: (f32, f32),
@@ -56,13 +57,14 @@ impl FoodController {
             limit,
             energy_range,
             speed_range,
-            last_spawn_time: get_time(),
+            time: 0.0,
+            last_spawn_time: 0.0,
             population: Vec::with_capacity(limit),
         }
     }
 
-    pub fn reset_time(&mut self) {
-        self.last_spawn_time = get_time();
+    pub fn set_time(&mut self, time: f32) {
+        self.time = time;
     }
 
     pub fn spawn_one(&mut self) {
@@ -77,12 +79,11 @@ impl FoodController {
 
     /// Check timer to spawn one food instance.
     pub fn check_spawn(&mut self) {
-        let t = get_time();
-        if (t - self.last_spawn_time) >= self.spawn_time {
+        if (self.time - self.last_spawn_time) >= self.spawn_time {
             if self.limit > self.population.len() {
                 self.spawn_one();
             }
-            self.last_spawn_time = t;
+            self.last_spawn_time = self.time;
         }
     }
 
@@ -106,7 +107,7 @@ mod tests {
             Self {
                 position,
                 energy: 1.0,
-                speed_factor: 1.0,
+                _speed_factor: 1.0,
                 speed: vec2(0.0, 0.0),
             }
         }

@@ -8,8 +8,8 @@ use macroquad::prelude::*;
 
 /// When slime is below this threshold, its free to move without energy cost.
 const FREE_MOVEMENT_TH: f32 = 5.0;
-/// How often (seconds) slimes consume 1 energy.
-const TIME_COST_FREQ: f64 = 1.0;
+/// How often (time steps) slimes consume 1 energy.
+const TIME_COST_FREQ: f32 = 60.0;
 /// Energy cost to jump.
 const JUMP_COST: f32 = 2.5;
 /// Jump distance.
@@ -17,11 +17,11 @@ const JUMP_DISTANCE: f32 = 10.0;
 /// Minimum energy required to be able to jump.
 const JUMP_REQUIREMENT: f32 = 25.0;
 /// Every time a slime collects this amount of energy, it can evolve.
-const EVOLVE_REQUIREMENT: f32 = 50.0;
+const _EVOLVE_REQUIREMENT: f32 = 50.0;
 /// Slimes need at least this amount of energy to be able to breed.
 const BREEDING_REQUIREMENT: f32 = 50.0;
 /// Time cooldown for slimes to breed.
-const BREEDING_COOLDOWN: f64 = 5.0;
+const BREEDING_COOLDOWN: f32 = 300.0;
 
 #[derive(Clone, PartialEq, Eq)]
 pub enum SlimeState {
@@ -50,9 +50,9 @@ pub struct Slime {
     size: f32,
     step_cost: f32,
     vision_range: f32,
-    jump_cooldown: f64,
-    last_jump: f64,
-    last_breed: f64,
+    jump_cooldown: f32,
+    last_jump: f32,
+    last_breed: f32,
 }
 
 impl Slime {
@@ -61,9 +61,8 @@ impl Slime {
         energy: f32,
         step_cost: f32,
         vision_range: f32,
-        jump_cooldown: f64,
+        jump_cooldown: f32,
     ) -> Self {
-        let t = get_time();
         let mut slime = Self {
             position: random_screen_position(),
             state: SlimeState::Normal,
@@ -74,8 +73,8 @@ impl Slime {
             step_cost,
             vision_range,
             jump_cooldown,
-            last_jump: t,
-            last_breed: t,
+            last_jump: 0.0,
+            last_breed: 0.0,
         };
         slime.update_size();
         slime
@@ -115,12 +114,17 @@ impl Slime {
 
     /// Checks the nearest other slime able to breed and returns its index and distance.
     /// * `idx` - Index of the current slime in `slimes`.
-    fn nearest_breeding_slime(&self, idx: usize, slimes: &[Slime]) -> Option<(usize, f32)> {
+    fn nearest_breeding_slime(
+        &self,
+        idx: usize,
+        slimes: &[Slime],
+        time: f32,
+    ) -> Option<(usize, f32)> {
         let (idxs, positions): (Vec<_>, Vec<_>) = slimes
             .iter()
             .enumerate()
             .filter_map(|(i, s)| {
-                if (i != idx) && (s.is_breed_ready()) {
+                if (i != idx) && (s.is_breed_ready(time)) {
                     Some((i, s.position))
                 } else {
                     None
@@ -157,26 +161,25 @@ impl Slime {
         }
     }
 
-    fn is_jump_ready(&self) -> bool {
-        (self.energy >= JUMP_REQUIREMENT) && ((get_time() - self.last_jump) >= self.jump_cooldown)
+    fn is_jump_ready(&self, time: f32) -> bool {
+        (self.energy >= JUMP_REQUIREMENT) && ((time - self.last_jump) >= self.jump_cooldown)
     }
 
-    fn is_breed_ready(&self) -> bool {
+    fn is_breed_ready(&self, time: f32) -> bool {
         (self.state != SlimeState::Breeding)
             && (self.energy >= BREEDING_REQUIREMENT)
-            && ((get_time() - self.last_breed) >= BREEDING_COOLDOWN)
+            && ((time - self.last_breed) >= BREEDING_COOLDOWN)
     }
 
     /// Returns a new `Slime` with an initial energy.
-    fn breed(&mut self, partner: &mut Self, energy: f32) -> Self {
-        self.last_breed = get_time();
+    fn breed(&mut self, partner: &mut Self, energy: f32, time: f32) -> Self {
+        self.last_breed = time;
         self.state = SlimeState::Breeding;
         self.add_energy(-energy);
-        partner.last_breed = get_time();
+        partner.last_breed = time;
         partner.state = SlimeState::Breeding;
         partner.add_energy(-energy);
         let skills = Vec::new();
-        let t = get_time();
         let mut child = Self {
             position: self.position,
             state: SlimeState::Normal,
@@ -187,8 +190,8 @@ impl Slime {
             step_cost: self.step_cost,
             vision_range: self.vision_range,
             jump_cooldown: self.jump_cooldown,
-            last_jump: t,
-            last_breed: t,
+            last_jump: 0.0,
+            last_breed: 0.0,
         };
         child.update_size();
         child
@@ -200,8 +203,9 @@ pub struct SlimeController {
     initial_energy: f32,
     initial_step_cost: f32,
     initial_vision_range: f32,
-    initial_jump_cooldown: f64,
-    last_time_cost: f64,
+    initial_jump_cooldown: f32,
+    time: f32,
+    last_time_cost: f32,
     pub population: Vec<Slime>,
 }
 
@@ -211,7 +215,7 @@ impl SlimeController {
         initial_energy: f32,
         initial_step_cost: f32,
         initial_vision_range: f32,
-        initial_jump_cooldown: f64,
+        initial_jump_cooldown: f32,
     ) -> Self {
         Self {
             speed_factor,
@@ -219,7 +223,8 @@ impl SlimeController {
             initial_step_cost,
             initial_vision_range,
             initial_jump_cooldown,
-            last_time_cost: get_time(),
+            time: 0.0,
+            last_time_cost: 0.0,
             population: Vec::new(),
         }
     }
@@ -240,8 +245,7 @@ impl SlimeController {
 
     /// Check timer for time cost.
     pub fn check_time_cost(&mut self) {
-        let t = get_time();
-        if (t - self.last_time_cost) >= TIME_COST_FREQ {
+        if (self.time - self.last_time_cost) >= TIME_COST_FREQ {
             let mut i = 0;
             while i < self.population.len() {
                 self.population[i].add_energy(-1.0);
@@ -251,7 +255,7 @@ impl SlimeController {
                     i += 1;
                 }
             }
-            self.last_time_cost = t;
+            self.last_time_cost = self.time;
         }
     }
 
@@ -270,12 +274,14 @@ impl SlimeController {
             // Step 1: Move
             let mut slime = self.population[idx].clone();
             let mut target_position_distance = None;
-            let breed_ready = slime.is_breed_ready();
+            let breed_ready = slime.is_breed_ready(self.time);
             let mut breeding_target = None;
 
             // - Get target position distance
             if breed_ready {
-                if let Some((i, distance)) = slime.nearest_breeding_slime(idx, &self.population) {
+                if let Some((i, distance)) =
+                    slime.nearest_breeding_slime(idx, &self.population, self.time)
+                {
                     if (distance - slime.size) <= slime.vision_range {
                         target_position_distance = Some((self.population[i].position, distance));
                         breeding_target = Some(i);
@@ -317,20 +323,20 @@ impl SlimeController {
                 if let Some(i) = breeding_target {
                     let partner = &mut self.population[i];
                     if slime.is_point_inside(partner.position, 0.0) {
-                        childs.push(slime.breed(partner, self.initial_energy));
+                        childs.push(slime.breed(partner, self.initial_energy, self.time));
                     }
                 }
             }
 
             // Step 4: Jump
-            if !did_eat && (slime.state != SlimeState::Breeding) && slime.is_jump_ready() {
+            if !did_eat && (slime.state != SlimeState::Breeding) && slime.is_jump_ready(self.time) {
                 if let Some((i, distance)) = slime.nearest_food(foods) {
                     if (distance - slime.size) <= JUMP_DISTANCE {
                         let nearest_food = &foods[i];
                         slime.position = nearest_food.position;
                         slime.add_energy(nearest_food.energy - JUMP_COST);
                         foods.remove(i);
-                        slime.last_jump = get_time();
+                        slime.last_jump = self.time;
                         slime.state = SlimeState::Jumping;
                     }
                 }
@@ -343,8 +349,8 @@ impl SlimeController {
         self.population.append(&mut childs);
     }
 
-    pub fn reset_time(&mut self) {
-        self.last_time_cost = get_time();
+    pub fn set_time(&mut self, time: f32) {
+        self.time = time;
     }
 
     fn reset_slime_states(&mut self) {

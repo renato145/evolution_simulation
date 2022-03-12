@@ -1,5 +1,5 @@
 The main evolving creature.
-- It consume energy every X seconds.
+- It consume energy every X time steps.
 - Each movement consumes Y energy (proportional to its size).
 - When energy is less than a threshold S, its free to move.
 - By consuming A energy, it can jump to eat.
