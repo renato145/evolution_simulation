@@ -418,7 +418,7 @@ impl SlimeController {
                 if let Some((i, distance)) =
                     slime.nearest_breeding_slime(idx, &self.population, self.time)
                 {
-                    if (distance - slime.size) <= slime.vision_range {
+                    if (distance - slime.size) <= slime.vision_range() {
                         target_position_distance = Some((self.population[i].position, distance));
                         breeding_target = Some(i);
                     }
@@ -426,7 +426,7 @@ impl SlimeController {
             }
             if target_position_distance.is_none() {
                 if let Some((i, distance)) = slime.nearest_food(foods) {
-                    if (distance - slime.size) <= slime.vision_range {
+                    if (distance - slime.size) <= slime.vision_range() {
                         target_position_distance = Some((foods[i].position, distance));
                     }
                 }
