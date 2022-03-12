@@ -13,7 +13,7 @@ const TIME_COST_FREQ: f32 = 60.0;
 /// Energy cost to jump.
 const JUMP_COST: f32 = 12.0;
 /// Jump distance.
-const JUMP_DISTANCE: f32 = 7.5;
+const JUMP_DISTANCE: f32 = 5.0;
 /// Minimum energy required to be able to jump.
 const JUMP_REQUIREMENT: f32 = 25.0;
 /// Every time a slime collects this amount of energy, it can evolve.

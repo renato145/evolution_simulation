@@ -1,6 +1,6 @@
 use crate::{
     food::{FoodController, FOOD_SIZE},
-    slime::{SlimeController, SlimeState},
+    slime::{Skills, SlimeController, SlimeState},
 };
 use human_format::Formatter;
 use macroquad::{
@@ -133,21 +133,40 @@ impl World {
             .with_decimals(1)
             .with_separator("")
             .format(self.time as f64);
-        let texts = [
-            format!("Fps: {}s", get_fps()),
-            format!("Time: {}", time),
-            format!("Slimes: {}", self.slime_controller.population.len()),
-            format!("Food: {}", self.food_controller.population.len()),
+        let vej = self
+            .slime_controller
+            .population
+            .iter()
+            .fold((0, 0, 0), |mut vej, s| {
+                vej.0 += s.skills.vision;
+                vej.1 += s.skills.efficiency;
+                vej.2 += s.skills.jumper;
+                vej
+            });
+        let entries = [
+            (format!("Fps: {}s", get_fps()), LIGHTGRAY),
+            (format!("Time: {}", time), LIGHTGRAY),
+            (
+                format!("Slimes: {}", self.slime_controller.population.len()),
+                LIGHTGRAY,
+            ),
+            (
+                format!("Food: {}", self.food_controller.population.len()),
+                LIGHTGRAY,
+            ),
+            (format!("Vision: {}", vej.0), ORANGE),
+            (format!("Efficiency: {}", vej.1), PURPLE),
+            (format!("Jumper: {}", vej.2), PINK),
         ];
         let mut y = 15.0;
-        for text in texts.iter() {
-            let size = measure_text(text, None, FONT_SIZE, 1.0);
+        for (text, color) in entries {
+            let size = measure_text(&text, None, FONT_SIZE, 1.0);
             draw_text(
-                text,
+                &text,
                 screen_width() - size.width - 5.0,
                 y,
                 FONT_SIZE as f32,
-                LIGHTGRAY,
+                color,
             );
             y += size.height + 5.0;
         }
