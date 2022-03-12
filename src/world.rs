@@ -1,10 +1,9 @@
-use std::ops::Div;
-
 use crate::{
     food::{FoodController, FOOD_SIZE},
-    slime::SlimeController,
+    slime::{SlimeController, SlimeState},
 };
 use macroquad::prelude::*;
+use std::ops::Div;
 
 pub struct World {
     food_controller: FoodController,
@@ -13,9 +12,9 @@ pub struct World {
 
 impl World {
     pub fn new(initial_food: usize, initial_slimes: usize, food_limit: usize) -> Self {
-        let mut food_controller = FoodController::new(0.5, food_limit, (2.0, 15.0), (0.5, 3.0));
+        let mut food_controller = FoodController::new(0.1, food_limit, (5.0, 20.0), (0.5, 3.0));
         food_controller.spawn_n(initial_food);
-        let mut slime_controller = SlimeController::new(1.5, 20.0, 0.05, 50.0, 5.0);
+        let mut slime_controller = SlimeController::new(1.8, 20.0, 0.05, 50.0, 5.0);
         slime_controller.spawn_n(initial_slimes);
         Self {
             food_controller,
@@ -44,6 +43,7 @@ impl World {
 
     /// Draws world status on top right corner of the screen
     fn draw_status(&self) {
+        const FONT_SIZE: u16 = 25;
         let texts = [
             format!("Fps: {}s", get_fps()),
             format!("Time: {:.1}s", get_time()),
@@ -52,8 +52,14 @@ impl World {
         ];
         let mut y = 15.0;
         for text in texts.iter() {
-            let size = measure_text(text, None, 20, 1.0);
-            draw_text(text, screen_width() - size.width - 5.0, y, 20.0, LIGHTGRAY);
+            let size = measure_text(text, None, FONT_SIZE, 1.0);
+            draw_text(
+                text,
+                screen_width() - size.width - 5.0,
+                y,
+                FONT_SIZE as f32,
+                LIGHTGRAY,
+            );
             y += size.height + 5.0;
         }
     }
@@ -74,10 +80,12 @@ impl World {
             let hovered = slime.is_point_inside(mouse, slime.size_vision());
             let color = if hovered {
                 BLUE
-            } else if slime.is_jumping() {
-                LIME
             } else {
-                RED
+                match slime.state {
+                    SlimeState::Normal => RED,
+                    SlimeState::Jumping => LIME,
+                    SlimeState::Breeding => PINK,
+                }
             };
             draw_circle(slime.position.x, slime.position.y, slime.size(), color);
             if hovered {

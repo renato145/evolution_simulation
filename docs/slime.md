@@ -6,8 +6,9 @@ The main evolving creature.
   - Slime requires to have at least H energy to be able to jump.
   - Jump has a time cooldown.
 - Every P energy it will evolve.
-- When meeting another slime, if energy is at least M and the difference
-  is not less than the smaller slime's energy, a new slime will spawn.
+- When meeting another slime, if energy is at least M, a new slime will spawn.
+  - Each parent will pay the initial energy of the child.
+  - Breeding has a time cooldown.
 - If energy reaches 0, the slime will die.
 
 ### Slime evolution (skills)
