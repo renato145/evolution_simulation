@@ -15,7 +15,7 @@ impl World {
     pub fn new(initial_food: usize, initial_slimes: usize, food_limit: usize) -> Self {
         let mut food_controller = FoodController::new(0.2, food_limit, (1.0, 10.0), (0.5, 3.0));
         food_controller.spawn_n(initial_food);
-        let mut slime_controller = SlimeController::new(1.5, 10.0, 0.1, 50.0);
+        let mut slime_controller = SlimeController::new(1.5, 10.0, 0.1, 50.0, 5.0);
         slime_controller.spawn_n(initial_slimes);
         Self {
             food_controller,
@@ -72,7 +72,13 @@ impl World {
         };
         self.slime_controller.population.iter().for_each(|slime| {
             let hovered = slime.is_point_inside(mouse, slime.size_vision());
-            let color = if hovered { BLUE } else { RED };
+            let color = if hovered {
+                BLUE
+            } else if slime.is_jumping() {
+                LIME
+            } else {
+                RED
+            };
             draw_circle(slime.position.x, slime.position.y, slime.size(), color);
             if hovered {
                 draw_circle_lines(

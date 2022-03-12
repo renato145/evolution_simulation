@@ -10,7 +10,7 @@
 
 pub mod food;
 pub mod slime;
-pub mod world;
 pub mod utils;
+pub mod world;
 
 pub use world::*;
