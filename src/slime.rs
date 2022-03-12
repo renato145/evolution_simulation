@@ -204,9 +204,9 @@ impl Slime {
     }
 
     /// Get the slime's speed factor considering skill modifications.
-    /// Max skill augmentation will increment it to 1.5x.
+    /// Max skill augmentation will increment it to 1.75x.
     pub fn speed_factor(&self) -> f32 {
-        self.speed_factor * (1.0 + (self.skills.vision as f32) / (EVOLVE_LIMIT as f32) * 0.5)
+        self.speed_factor * (1.0 + (self.skills.vision as f32) / (EVOLVE_LIMIT as f32) * 0.75)
     }
 
     /// Get the slime's vision range considering skill modifications.

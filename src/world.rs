@@ -37,13 +37,13 @@ impl World {
             clear_background(BLACK);
 
             // Updates
-            self.food_controller.set_time(self.time);
-            self.slime_controller.set_time(self.time);
-
             for _ in 0..(self.simulation_speed.round() as usize) {
+                self.food_controller.set_time(self.time);
+                self.slime_controller.set_time(self.time);
                 self.food_controller.update_step();
                 self.slime_controller
                     .update_step(&mut self.food_controller.population);
+                self.time += 1.0;
             }
 
             // Draws
@@ -52,8 +52,6 @@ impl World {
             self.draw_status();
             self.draw_ui();
             next_frame().await;
-
-            self.time += self.simulation_speed;
         }
     }
 
