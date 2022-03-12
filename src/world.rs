@@ -15,7 +15,6 @@ impl World {
     pub async fn run(mut self) {
         self.food_spawner.reset_time();
         loop {
-            let t = get_time();
             clear_background(BLACK);
 
             // Updates
@@ -23,23 +22,24 @@ impl World {
             self.food_spawner.check_spawn();
 
             // Draws
-            draw_time(t);
+            self.draw_status();
             draw_food(&self.food_spawner.population);
             next_frame().await
         }
     }
-}
 
-fn draw_time(t: f64) {
-    let text = format!("{:.1}s", t);
-    let size = measure_text(&text, None, 20, 1.0);
-    draw_text(
-        &text,
-        screen_width() - size.width - 5.0,
-        15.0,
-        20.0,
-        LIGHTGRAY,
-    );
+    fn draw_status(&self) {
+        let texts = [
+            format!("Time: {:.1}s", get_time()),
+            format!("Food: {}", self.food_spawner.population.len()),
+        ];
+        let mut y = 15.0;
+        for text in texts.iter() {
+            let size = measure_text(&text, None, 20, 1.0);
+            draw_text(text, screen_width() - size.width - 5.0, y, 20.0, LIGHTGRAY);
+            y += size.height + 5.0;
+        }
+    }
 }
 
 fn draw_food(food: &[Food]) {
