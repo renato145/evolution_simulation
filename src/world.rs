@@ -19,9 +19,9 @@ pub struct World {
 
 impl World {
     pub fn new(initial_food: usize, initial_slimes: usize, food_limit: usize) -> Self {
-        let mut food_controller = FoodController::new(5.0, food_limit, (5.0, 15.0), (0.5, 2.5));
+        let mut food_controller = FoodController::new(4.0, food_limit, (5.0, 15.0), (0.5, 2.5));
         food_controller.spawn_n(initial_food);
-        let mut slime_controller = SlimeController::new(1.8, 30.0, 0.12, 40.0, 500.0);
+        let mut slime_controller = SlimeController::new(1.8, 30.0, 0.2, 40.0, 500.0);
         slime_controller.spawn_n(initial_slimes);
         Self {
             food_controller,
@@ -116,7 +116,7 @@ impl World {
                 let y = (slime.position.y + 25.0).min(screen_height());
                 texts
                     .iter()
-                    .zip([ORANGE, PURPLE, DARKGREEN])
+                    .zip([ORANGE, PURPLE, PINK])
                     .zip(widths)
                     .for_each(|((text, color), width)| {
                         draw_text(text, x, y, SKILLS_FONT_SIZE as f32, color);
@@ -163,8 +163,8 @@ impl World {
         .ui(&mut *root_ui(), |ui| {
             ui.slider(
                 hash!(),
-                "[1 .. 100]",
-                1.0..100.0,
+                "[1 .. 500]",
+                1.0..500.0,
                 &mut self.simulation_speed,
             );
         });

@@ -11,9 +11,9 @@ const FREE_MOVEMENT_TH: f32 = 10.0;
 /// How often (time steps) slimes consume 1 energy.
 const TIME_COST_FREQ: f32 = 60.0;
 /// Energy cost to jump.
-const JUMP_COST: f32 = 10.0;
+const JUMP_COST: f32 = 12.0;
 /// Jump distance.
-const JUMP_DISTANCE: f32 = 10.0;
+const JUMP_DISTANCE: f32 = 7.5;
 /// Minimum energy required to be able to jump.
 const JUMP_REQUIREMENT: f32 = 25.0;
 /// Every time a slime collects this amount of energy, it can evolve.
@@ -21,7 +21,7 @@ const EVOLVE_REQUIREMENT: f32 = 50.0;
 /// Maximum number of skills.
 const EVOLVE_LIMIT: usize = 12;
 /// Slimes need at least this amount of energy to be able to breed.
-const BREEDING_REQUIREMENT: f32 = 100.0;
+const BREEDING_REQUIREMENT: f32 = 80.0;
 /// Time cooldown for slimes to breed.
 const BREEDING_COOLDOWN: f32 = 300.0;
 
@@ -204,9 +204,9 @@ impl Slime {
     }
 
     /// Get the slime's speed factor considering skill modifications.
-    /// Max skill augmentation will increment it to 2.0x.
+    /// Max skill augmentation will increment it to 1.5x.
     pub fn speed_factor(&self) -> f32 {
-        self.speed_factor * (1.0 + (self.skills.vision as f32) / (EVOLVE_LIMIT as f32) * 1.0)
+        self.speed_factor * (1.0 + (self.skills.vision as f32) / (EVOLVE_LIMIT as f32) * 0.5)
     }
 
     /// Get the slime's vision range considering skill modifications.
@@ -280,9 +280,9 @@ impl Slime {
     }
 
     /// Get the slime's step cost considering skill modifications.
-    /// Max skill augmentation will decrease it by 1/6.
+    /// Max skill augmentation will decrease it by 1/8.
     pub fn step_cost(&self) -> f32 {
-        self.step_cost / (1.0 + (self.skills.jumper as f32) / (EVOLVE_LIMIT as f32) * 5.0)
+        self.step_cost / (1.0 + (self.skills.jumper as f32) / (EVOLVE_LIMIT as f32) * 7.0)
     }
 
     fn apply_movement_cost(&mut self) {
