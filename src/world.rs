@@ -10,10 +10,10 @@ pub struct World {
 }
 
 impl World {
-    pub fn new(initial_food: usize, initial_slimes: usize) -> Self {
-        let mut food_controller = FoodController::new(0.2, 100, (1.0, 10.0), (0.5, 3.0));
+    pub fn new(initial_food: usize, initial_slimes: usize, food_limit: usize) -> Self {
+        let mut food_controller = FoodController::new(0.2, food_limit, (1.0, 10.0), (0.5, 3.0));
         food_controller.spawn_n(initial_food);
-        let mut slime_controller = SlimeController::new(1.5, 10.0, 0.1, 10.0);
+        let mut slime_controller = SlimeController::new(1.5, 10.0, 0.1, 50.0);
         slime_controller.spawn_n(initial_slimes);
         Self {
             food_controller,
