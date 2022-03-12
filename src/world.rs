@@ -28,6 +28,7 @@ impl World {
         }
     }
 
+    /// Draws world status on top right corner of the screen
     fn draw_status(&self) {
         let texts = [
             format!("Time: {:.1}s", get_time()),
