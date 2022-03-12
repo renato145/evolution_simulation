@@ -19,9 +19,9 @@ pub struct World {
 
 impl World {
     pub fn new(initial_food: usize, initial_slimes: usize, food_limit: usize) -> Self {
-        let mut food_controller = FoodController::new(20.0, food_limit, (5.0, 15.0), (0.5, 2.5));
+        let mut food_controller = FoodController::new(5.0, food_limit, (5.0, 15.0), (0.5, 2.5));
         food_controller.spawn_n(initial_food);
-        let mut slime_controller = SlimeController::new(1.8, 20.0, 0.1, 30.0, 500.0);
+        let mut slime_controller = SlimeController::new(1.8, 30.0, 0.12, 40.0, 500.0);
         slime_controller.spawn_n(initial_slimes);
         Self {
             food_controller,
@@ -161,7 +161,7 @@ impl World {
         )
         .label("Simulation speed")
         .ui(&mut *root_ui(), |ui| {
-            ui.slider(hash!(), "[1 .. 30]", 1.0..50.0, &mut self.simulation_speed);
+            ui.slider(hash!(), "[1 .. 100]", 1.0..100.0, &mut self.simulation_speed);
         });
     }
 }
