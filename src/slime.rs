@@ -45,87 +45,93 @@ pub enum SkillType {
 impl SkillType {
     fn random() -> Self {
         match gen_range(0, 3) {
-            1 => Self::Vision,
-            2 => Self::Efficiency,
-            3 => Self::Jumper,
+            0 => Self::Vision,
+            1 => Self::Efficiency,
+            2 => Self::Jumper,
             _ => unreachable!(),
         }
     }
 }
 
 #[derive(Clone)]
-pub struct Skill {
-    skill_type: SkillType,
-    level: usize,
+pub struct Skills {
+    vision: usize,
+    efficiency: usize,
+    jumper: usize,
 }
 
-impl Skill {
-    pub fn new(skill_type: SkillType, level: usize) -> Self {
-        Self { skill_type, level }
-    }
-
-    fn merge(self, other: Self) -> Skills {
-        use self::SkillType::*;
-        match (self.skill_type, other.skill_type) {
-            (Vision, Vision) => Skill::new(Vision, self.level + other.level).into(),
-            (Efficiency, Efficiency) => Skill::new(Efficiency, self.level + other.level).into(),
-            (Jumper, Jumper) => Skill::new(Jumper, self.level + other.level).into(),
-            (_, _) => Skills(vec![self, other]),
+impl From<(usize, usize, usize)> for Skills {
+    fn from(vej: (usize, usize, usize)) -> Self {
+        Self {
+            vision: vej.0,
+            efficiency: vej.1,
+            jumper: vej.2,
         }
     }
 }
-
-impl From<Skill> for Skills {
-    fn from(skill: Skill) -> Self {
-        Skills(vec![skill])
-    }
-}
-
-#[derive(Clone)]
-pub struct Skills(Vec<Skill>);
 
 impl Skills {
     fn new() -> Self {
-        Self(Vec::new())
+        Self {
+            vision: 0,
+            efficiency: 0,
+            jumper: 0,
+        }
     }
 
-    fn count(&self) -> usize {
-        self.0.iter().map(|s| s.level).sum()
+    fn count_levels(&self) -> usize {
+        self.vision + self.efficiency + self.jumper
+    }
+
+    fn unique_skills(&self) -> usize {
+        let zero_count =
+            (self.vision == 0) as usize + (self.vision == 0) as usize + (self.vision == 0) as usize;
+        3 - zero_count
     }
 
     fn add_skill(&mut self, skill_type: SkillType) {
-        for skill in self.0.iter_mut() {
-            if skill.skill_type == skill_type {
-                skill.level += 1;
-                return;
-            }
+        match skill_type {
+            SkillType::Vision => self.vision += 1,
+            SkillType::Efficiency => self.efficiency += 1,
+            SkillType::Jumper => self.jumper += 1,
         }
-        self.0.push(Skill::new(skill_type, 1));
     }
 
     /// Chooses a random skill and returns it with the level reduced in half (rounded up).
-    fn inherit(&self) -> Option<Skill> {
-        match self.0.len() {
+    fn inherit(&self) -> Option<Skills> {
+        match self.unique_skills() {
             0 => None,
-            1 => Some(Skill::new(
-                self.0[0].skill_type,
-                (self.0[0].level as f32 / 2.0).ceil() as usize,
-            )),
-            _ => {
-                let i = gen_range(0, self.count());
-                let mut acc = 0;
-                for skill in &self.0 {
-                    acc += skill.level;
-                    if acc >= i {
-                        return Some(Skill::new(
-                            self.0[i].skill_type,
-                            (self.0[0].level as f32 / 2.0).ceil() as usize,
-                        ));
-                    }
+            1 => {
+                let mut vej = (0, 0, 0);
+                if self.vision > 0 {
+                    vej.0 += (self.vision as f32 / 2.0).ceil() as usize
+                } else if self.efficiency > 0 {
+                    vej.1 += (self.efficiency as f32 / 2.0).ceil() as usize
+                } else {
+                    vej.2 += (self.jumper as f32 / 2.0).ceil() as usize
                 }
-                unreachable!();
+                Some(vej.into())
+            }
+            _ => {
+                let mut vej = (0, 0, 0);
+                let i = gen_range(0, self.count_levels());
+                if i <= self.vision {
+                    vej.0 += (self.vision as f32 / 2.0).ceil() as usize
+                } else if i <= (self.vision + self.efficiency) {
+                    vej.1 += (self.efficiency as f32 / 2.0).ceil() as usize
+                } else {
+                    vej.2 += (self.jumper as f32 / 2.0).ceil() as usize
+                }
+                Some(vej.into())
             }
         }
+    }
+
+    fn merge(mut self, rhs: Self) -> Self {
+        self.vision += rhs.vision;
+        self.efficiency += rhs.efficiency;
+        self.jumper += rhs.jumper;
+        self
     }
 }
 
@@ -295,12 +301,6 @@ impl Slime {
         partner.last_breed = time;
         partner.state = SlimeState::Breeding;
         partner.add_energy(-energy);
-        let skills = match (self.skills.inherit(), partner.skills.inherit()) {
-            (None, None) => Skills::new(),
-            (None, Some(s)) => s.into(),
-            (Some(s), None) => s.into(),
-            (Some(sa), Some(sb)) => sa.merge(sb),
-        };
         let mut child = Self::new(
             self.position,
             self.speed_factor,
@@ -309,6 +309,12 @@ impl Slime {
             self.vision_range,
             self.jump_cooldown,
         );
+        let skills = match (self.skills.inherit(), partner.skills.inherit()) {
+            (None, None) => Skills::new(),
+            (None, Some(s)) => s,
+            (Some(s), None) => s,
+            (Some(sa), Some(sb)) => sa.merge(sb),
+        };
         child.skills = skills;
         child
     }
@@ -462,7 +468,7 @@ impl SlimeController {
             // Step 5: Evolve
             if slime.is_evolve_ready() {
                 slime.skills.add_skill(slime.skill_path);
-                if slime.skills.count() >= EVOLVE_LIMIT {
+                if slime.skills.count_levels() >= EVOLVE_LIMIT {
                     slime.next_skill_goal = std::f32::MAX;
                 } else {
                     slime.next_skill_goal += EVOLVE_REQUIREMENT;
