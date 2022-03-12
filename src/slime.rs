@@ -11,7 +11,7 @@ const FREE_MOVEMENT_TH: f32 = 10.0;
 /// How often (time steps) slimes consume 1 energy.
 const TIME_COST_FREQ: f32 = 60.0;
 /// Energy cost to jump.
-const JUMP_COST: f32 = 7.5;
+const JUMP_COST: f32 = 10.0;
 /// Jump distance.
 const JUMP_DISTANCE: f32 = 10.0;
 /// Minimum energy required to be able to jump.
@@ -53,7 +53,7 @@ impl SkillType {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Skills {
     pub vision: usize,
     pub efficiency: usize,
@@ -84,8 +84,9 @@ impl Skills {
     }
 
     fn unique_skills(&self) -> usize {
-        let zero_count =
-            (self.vision == 0) as usize + (self.vision == 0) as usize + (self.vision == 0) as usize;
+        let zero_count = (self.vision == 0) as usize
+            + (self.efficiency == 0) as usize
+            + (self.jumper == 0) as usize;
         3 - zero_count
     }
 
@@ -97,18 +98,18 @@ impl Skills {
         }
     }
 
-    /// Chooses a random skill and returns it with the level reduced in half (rounded up).
+    /// Chooses a random skill and returns it with the level reduced by 1/3 (rounded up).
     fn inherit(&self) -> Option<Skills> {
         match self.unique_skills() {
             0 => None,
             1 => {
                 let mut vej = (0, 0, 0);
                 if self.vision > 0 {
-                    vej.0 += (self.vision as f32 / 2.0).ceil() as usize
+                    vej.0 += (self.vision as f32 / 3.0).ceil() as usize
                 } else if self.efficiency > 0 {
-                    vej.1 += (self.efficiency as f32 / 2.0).ceil() as usize
+                    vej.1 += (self.efficiency as f32 / 3.0).ceil() as usize
                 } else {
-                    vej.2 += (self.jumper as f32 / 2.0).ceil() as usize
+                    vej.2 += (self.jumper as f32 / 3.0).ceil() as usize
                 }
                 Some(vej.into())
             }
@@ -116,11 +117,11 @@ impl Skills {
                 let mut vej = (0, 0, 0);
                 let i = gen_range(0, self.count_levels());
                 if i <= self.vision {
-                    vej.0 += (self.vision as f32 / 2.0).ceil() as usize
+                    vej.0 += (self.vision as f32 / 3.0).ceil() as usize
                 } else if i <= (self.vision + self.efficiency) {
-                    vej.1 += (self.efficiency as f32 / 2.0).ceil() as usize
+                    vej.1 += (self.efficiency as f32 / 3.0).ceil() as usize
                 } else {
-                    vej.2 += (self.jumper as f32 / 2.0).ceil() as usize
+                    vej.2 += (self.jumper as f32 / 3.0).ceil() as usize
                 }
                 Some(vej.into())
             }
@@ -203,9 +204,9 @@ impl Slime {
     }
 
     /// Get the slime's speed factor considering skill modifications.
-    /// Max skill augmentation will increment it to 1.5x.
+    /// Max skill augmentation will increment it to 2.0x.
     pub fn speed_factor(&self) -> f32 {
-        self.speed_factor * (1.0 + (self.skills.vision as f32) / (EVOLVE_LIMIT as f32) * 0.5)
+        self.speed_factor * (1.0 + (self.skills.vision as f32) / (EVOLVE_LIMIT as f32) * 1.0)
     }
 
     /// Get the slime's vision range considering skill modifications.
@@ -312,7 +313,7 @@ impl Slime {
     }
 
     /// Returns a new `Slime` with an initial energy. It will randomly inherit one skill
-    /// from each parent at random reducing its level by half (rounding up).
+    /// from each parent at random reducing its level by 1/3 (rounding up).
     fn breed(&mut self, partner: &mut Self, energy: f32, time: f32) -> Self {
         self.last_breed = time;
         self.state = SlimeState::Breeding;
@@ -528,7 +529,7 @@ mod tests {
     }
 
     #[test]
-    fn nearest_position() {
+    fn nearest_position_works() {
         let slime = Slime::create_test(vec2(5.0, 5.0));
         let positions = [vec2(0.0, 0.0), vec2(2.0, 2.0), vec2(10.0, 10.0)];
         let (i, distance) = slime.nearest_position(positions.into_iter()).unwrap();
@@ -537,9 +538,39 @@ mod tests {
     }
 
     #[test]
-    fn asd() {
-        for _ in 0..100 {
-            println!("{}", gen_range(0, 2));
+    fn unique_skills_works() {
+        let cases = [
+            ((0, 0, 0), 0),
+            ((2, 0, 0), 1),
+            ((0, 2, 0), 1),
+            ((0, 0, 2), 1),
+            ((3, 1, 0), 2),
+            ((0, 1, 3), 2),
+            ((1, 1, 1), 3),
+        ];
+        for (skills, expected) in cases {
+            let skills: Skills = skills.into();
+            let res = skills.unique_skills();
+            assert_eq!(res, expected, "Failed on: {:?}", skills);
         }
+    }
+
+    #[test]
+    fn breed_works() {
+        let mut a = Slime::create_test(vec2(0.0, 0.0));
+        let mut b = Slime::create_test(vec2(0.0, 0.0));
+        let child = a.breed(&mut b, 10.0, 0.0);
+        assert_eq!(child.skills.count_levels(), 0);
+        a.skills.vision = 6;
+        let child = a.breed(&mut b, 10.0, 0.0);
+        assert_eq!(child.skills.count_levels(), 2);
+        a.skills.vision = 6;
+        b.skills.jumper = 6;
+        let child = a.breed(&mut b, 10.0, 0.0);
+        assert_eq!(child.skills.count_levels(), 4);
+        a.skills = (6,6,6).into();
+        b.skills = (3,3,3).into();
+        let child = a.breed(&mut b, 10.0, 0.0);
+        assert_eq!(child.skills.count_levels(), 3);
     }
 }
