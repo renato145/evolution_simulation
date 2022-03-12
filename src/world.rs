@@ -132,7 +132,7 @@ impl World {
         )
         .label("Simulation speed")
         .ui(&mut *root_ui(), |ui| {
-            ui.slider(hash!(), "[1 .. 30]", 1.0..30.0, &mut self.simulation_speed);
+            ui.slider(hash!(), "[1 .. 30]", 1.0..50.0, &mut self.simulation_speed);
         });
     }
 }
