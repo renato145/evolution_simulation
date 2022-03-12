@@ -44,5 +44,5 @@ fn draw_time(t: f64) {
 
 fn draw_food(food: &[Food]) {
     food.iter()
-        .for_each(|f| draw_circle(f.position.x, f.position.y, 5.0, GREEN));
+        .for_each(|f| draw_circle(f.position.x, f.position.y, 2.0, GREEN));
 }
