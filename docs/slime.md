@@ -16,7 +16,7 @@ The main evolving creature.
   choose a path and will follow it on next evolutions.
 - A maximum of H skills levels can be hold at the same time.
 - When a new slime is spawned, if the parents already have some skills it will
-  inherit them, choosing randomly for each parent and reducing its level by
+  inherit them, choosing randomly from each parent and reducing its level by
   half (rounding up).
 - Skill paths:
   1) Vision: increase the range of vision to detect food.

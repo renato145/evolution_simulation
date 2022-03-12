@@ -1,7 +1,5 @@
 //! # Slime entity.
 #![doc = include_str!("../docs/slime.md")]
-use std::ops::Div;
-
 use crate::{
     food::Food,
     utils::{get_angle_direction, random_screen_position, wrap_around},
@@ -33,9 +31,20 @@ pub enum SlimeState {
 }
 
 #[derive(Clone)]
+pub enum Skill {
+    /// Increase the range of vision to detect food.
+    Vision(usize),
+    /// Reduces the energy needed to move around.
+    Efficiency(usize),
+    /// Reduces jump cooldown.
+    Jumper(usize),
+}
+
+#[derive(Clone)]
 pub struct Slime {
     pub position: Vec2,
     pub state: SlimeState,
+    pub skills: Vec<Skill>,
     speed_factor: f32,
     energy: f32,
     size: f32,
@@ -58,6 +67,7 @@ impl Slime {
         let mut slime = Self {
             position: random_screen_position(),
             state: SlimeState::Normal,
+            skills: Vec::new(),
             speed_factor,
             energy,
             size: 0.0,
@@ -165,10 +175,12 @@ impl Slime {
         partner.last_breed = get_time();
         partner.state = SlimeState::Breeding;
         partner.add_energy(-energy);
+        let skills = Vec::new();
         let t = get_time();
         let mut child = Self {
             position: self.position,
             state: SlimeState::Normal,
+            skills,
             speed_factor: self.speed_factor,
             energy,
             size: 0.0,
@@ -351,6 +363,7 @@ mod tests {
             Self {
                 position,
                 state: SlimeState::Normal,
+                skills: Vec::new(),
                 speed_factor: 1.0,
                 energy: 10.0,
                 size: 1.0,
