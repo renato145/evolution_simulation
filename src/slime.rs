@@ -568,8 +568,8 @@ mod tests {
         b.skills.jumper = 6;
         let child = a.breed(&mut b, 10.0, 0.0);
         assert_eq!(child.skills.count_levels(), 4);
-        a.skills = (6,6,6).into();
-        b.skills = (3,3,3).into();
+        a.skills = (6, 6, 6).into();
+        b.skills = (3, 3, 3).into();
         let child = a.breed(&mut b, 10.0, 0.0);
         assert_eq!(child.skills.count_levels(), 3);
     }
