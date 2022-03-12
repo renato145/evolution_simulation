@@ -1,8 +1,8 @@
 //! # Slime entity.
 #![doc = include_str!("../docs/slime.md")]
 use crate::{
-    food::{Food, FOOD_SIZE},
-    utils::{random_screen_position, wrap_around},
+    food::Food,
+    utils::{get_angle_direction, random_screen_position, wrap_around},
 };
 use macroquad::prelude::*;
 
@@ -102,7 +102,7 @@ impl SlimeController {
         for slime in self.population.iter_mut() {
             if let Some((nearest_food, distance)) = slime.nearest_food(foods) {
                 if (distance - slime.size()) <= slime.vision_range {
-                    let direction = slime.position.angle_between(nearest_food.position);
+                    let direction = get_angle_direction(slime.position, nearest_food.position);
                     let speed = polar_to_cartesian(slime.speed_factor.min(distance), direction);
                     slime.position += speed;
                     slime.position = wrap_around(&slime.position);
@@ -116,16 +116,22 @@ impl SlimeController {
 mod tests {
     use super::*;
 
+    impl Slime {
+        pub fn create_test(position: Vec2) -> Self {
+            Self {
+                position,
+                speed_factor: 1.0,
+                energy: 10.0,
+                size: 1.0,
+                step_cost: 0.1,
+                vision_range: 10.0,
+            }
+        }
+    }
+
     #[test]
     fn nearest_food_works() {
-        let slime = Slime {
-            position: vec2(5.0, 5.0),
-            speed_factor: 1.0,
-            energy: 10.0,
-            size: 1.0,
-            step_cost: 0.1,
-            vision_range: 10.0,
-        };
+        let slime = Slime::create_test(vec2(5.0, 5.0));
         let positions = [vec2(0.0, 0.0), vec2(2.0, 2.0), vec2(10.0, 10.0)];
         let foods = positions
             .clone()

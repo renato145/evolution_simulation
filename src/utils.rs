@@ -24,3 +24,9 @@ pub fn wrap_around(pos: &Vec2) -> Vec2 {
     }
     new_pos
 }
+
+/// Get angle direction from point a to b
+pub fn get_angle_direction(a: Vec2, b: Vec2) -> f32 {
+    let diff = b - a;
+    diff.y.atan2(diff.x)
+}
