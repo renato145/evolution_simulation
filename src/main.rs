@@ -2,6 +2,6 @@ use evolution_simulation::World;
 
 #[macroquad::main("Evolution simulation")]
 async fn main() {
-    let world = World::new(10, 3, 25);
+    let world = World::new(20, 10, 100);
     world.run().await;
 }

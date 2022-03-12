@@ -9,7 +9,7 @@ use macroquad::prelude::*;
 /// When slime is below this threshold, its free to move without energy cost.
 const FREE_MOVEMENT_TH: f32 = 5.0;
 /// How often (seconds) slimes consume 1 energy.
-const TIME_COST_FREQ: f64 = 0.5;
+const TIME_COST_FREQ: f64 = 1.0;
 /// Energy cost to jump.
 const JUMP_COST: f32 = 5.0;
 /// Jump distance.
@@ -20,8 +20,6 @@ const JUMP_REQUIREMENT: f32 = 25.0;
 const EVOLVE_REQUIREMENT: f32 = 50.0;
 /// Slimes need at least this amount of energy to be able to breed.
 const BREEDING_REQUIREMENT: f32 = 100.0;
-/// Adter this amount of seconds without eating, a slime will die.
-const STARVATION_TIME: f64 = 5.0;
 
 pub struct Slime {
     pub position: Vec2,
@@ -74,7 +72,7 @@ impl Slime {
 
     /// Set size as proportional to its energy.
     pub fn update_size(&mut self) {
-        self.size = (self.energy / 50.0).clamp(2.5, 10.0);
+        self.size = (self.energy / 50.0).clamp(2.5, 30.0);
     }
 
     /// Checks the nearst food and returns its index, reference and distance.

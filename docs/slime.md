@@ -9,7 +9,6 @@ The main evolving creature.
 - When meeting another slime, if energy is at least M and the difference
   is not less than the smaller slime's energy, a new slime will spawn.
 - If energy reaches 0, the slime will die.
-- If no food has been consumed on the last W seconds, the slime will die.
 
 ### Slime evolution (skills)
 - There are 3 evolving paths, the fist time it evolves the slime will randomly
