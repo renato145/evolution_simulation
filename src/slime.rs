@@ -9,21 +9,21 @@ use macroquad::{prelude::*, rand::gen_range};
 /// When slime is below this threshold, its free to move without energy cost.
 const FREE_MOVEMENT_TH: f32 = 10.0;
 /// How often (time steps) slimes consume 1 energy.
-const TIME_COST_FREQ: f32 = 60.0;
+const TIME_COST_FREQ: f32 = 10.0;
 /// Energy cost to jump.
-const JUMP_COST: f32 = 12.0;
+const JUMP_COST: f32 = 3.0;
 /// Jump distance.
-const JUMP_DISTANCE: f32 = 5.0;
+const JUMP_DISTANCE: f32 = 10.0;
 /// Minimum energy required to be able to jump.
 const JUMP_REQUIREMENT: f32 = 25.0;
 /// Every time a slime collects this amount of energy, it can evolve.
-const EVOLVE_REQUIREMENT: f32 = 50.0;
+const EVOLVE_REQUIREMENT: f32 = 40.0;
 /// Maximum number of skills.
-const EVOLVE_LIMIT: usize = 12;
+const EVOLVE_LIMIT: usize = 21;
 /// Slimes need at least this amount of energy to be able to breed.
-const BREEDING_REQUIREMENT: f32 = 80.0;
+const BREEDING_REQUIREMENT: f32 = 120.0;
 /// Time cooldown for slimes to breed.
-const BREEDING_COOLDOWN: f32 = 300.0;
+const BREEDING_COOLDOWN: f32 = 1000.0;
 
 #[derive(Clone, PartialEq, Eq)]
 pub enum SlimeState {
@@ -204,9 +204,9 @@ impl Slime {
     }
 
     /// Get the slime's speed factor considering skill modifications.
-    /// Max skill augmentation will increment it to 1.75x.
+    /// Max skill augmentation will increment it to 2x.
     pub fn speed_factor(&self) -> f32 {
-        self.speed_factor * (1.0 + (self.skills.vision as f32) / (EVOLVE_LIMIT as f32) * 0.75)
+        self.speed_factor * (1.0 + (self.skills.vision as f32) / (EVOLVE_LIMIT as f32) * 1.0)
     }
 
     /// Get the slime's vision range considering skill modifications.
@@ -280,9 +280,9 @@ impl Slime {
     }
 
     /// Get the slime's step cost considering skill modifications.
-    /// Max skill augmentation will decrease it by 1/8.
+    /// Max skill augmentation will decrease it by 1/3.
     pub fn step_cost(&self) -> f32 {
-        self.step_cost / (1.0 + (self.skills.jumper as f32) / (EVOLVE_LIMIT as f32) * 7.0)
+        self.step_cost / (1.0 + (self.skills.efficiency as f32) / (EVOLVE_LIMIT as f32) * 2.0)
     }
 
     fn apply_movement_cost(&mut self) {
@@ -293,9 +293,9 @@ impl Slime {
     }
 
     /// Get the slime's jump cooldown considering skill modifications.
-    /// Max skill augmentation will decrease it by 1/4.
+    /// Max skill augmentation will decrease it by 1/5.
     pub fn jump_cooldown(&self) -> f32 {
-        self.jump_cooldown / (1.0 + (self.skills.jumper as f32) / (EVOLVE_LIMIT as f32) * 3.0)
+        self.jump_cooldown / (1.0 + (self.skills.jumper as f32) / (EVOLVE_LIMIT as f32) * 4.0)
     }
 
     fn is_jump_ready(&self, time: f32) -> bool {
