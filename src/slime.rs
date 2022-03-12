@@ -197,18 +197,19 @@ impl Slime {
         )
     }
 
-    /// Get the slime's step cost.
-    pub fn step_cost(&self) -> f32 {
-        self.step_cost
-    }
-
     /// Get the slime's size.
     pub fn size(&self) -> f32 {
         self.size
     }
 
+    /// Get the slime's vision range considering skill modifications.
+    /// Max skill augmentation will increment it to 3x.
+    pub fn vision_range(&self) -> f32 {
+        self.vision_range * (1.0 + (self.skills.vision as f32) / (EVOLVE_LIMIT as f32) * 2.0)
+    }
+
     pub fn size_vision(&self) -> f32 {
-        self.size + self.vision_range
+        self.size + self.vision_range()
     }
 
     /// Set size as proportional to its energy.
@@ -271,15 +272,27 @@ impl Slime {
         self.update_size();
     }
 
+    /// Get the slime's step cost considering skill modifications.
+    /// Max skill augmentation will decrease it by 1/2.
+    pub fn step_cost(&self) -> f32 {
+        self.step_cost / (1.0 + (self.skills.jumper as f32) / (EVOLVE_LIMIT as f32))
+    }
+
     fn apply_movement_cost(&mut self) {
         if self.energy > FREE_MOVEMENT_TH {
             let mult = (self.energy / 100.0).max(1.0);
-            self.add_energy(-self.step_cost * mult);
+            self.add_energy(-self.step_cost() * mult);
         }
     }
 
+    /// Get the slime's jump cooldown considering skill modifications.
+    /// Max skill augmentation will decrease it by 1/3.
+    pub fn jump_cooldown(&self) -> f32 {
+        self.jump_cooldown / (1.0 + (self.skills.jumper as f32) / (EVOLVE_LIMIT as f32) * 2.0)
+    }
+
     fn is_jump_ready(&self, time: f32) -> bool {
-        (self.energy >= JUMP_REQUIREMENT) && ((time - self.last_jump) >= self.jump_cooldown)
+        (self.energy >= JUMP_REQUIREMENT) && ((time - self.last_jump) >= self.jump_cooldown())
     }
 
     fn is_breed_ready(&self, time: f32) -> bool {
