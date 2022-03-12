@@ -42,8 +42,18 @@ impl Slime {
         slime
     }
 
+    /// Get the slime's step cost.
+    pub fn step_cost(&self) -> f32 {
+        self.step_cost
+    }
+
+    /// Get the slime's size.
     pub fn size(&self) -> f32 {
         self.size
+    }
+
+    pub fn size_vision(&self) -> f32 {
+        self.size + self.vision_range
     }
 
     /// Set size as proportional to its energy.
@@ -57,6 +67,21 @@ impl Slime {
             .iter()
             .map(|f| (f, self.position.distance(f.position)))
             .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
+    }
+
+    /// Returns if point is inside the Slime
+    pub fn is_point_inside(&self, point: Vec2, padding: f32) -> bool {
+        self.position.distance(point) <= (self.size + padding)
+    }
+
+    fn add_energy(&mut self, energy: f32) {
+        self.energy += energy;
+        self.update_size();
+    }
+
+    /// Get the slime's energy.
+    pub fn energy(&self) -> f32 {
+        self.energy
     }
 }
 
@@ -97,15 +122,28 @@ impl SlimeController {
         (0..n).for_each(|_| self.spawn_one())
     }
 
-    /// Update slime positions to get close its nearest food in vision range.
-    pub fn update_positions(&mut self, foods: &[Food]) {
+    /// For each slime:
+    /// 1. Update slime position to get close its nearest food in vision range.
+    /// 2. If on top a food, eat it.
+    pub fn update_step(&mut self, foods: &mut Vec<Food>) {
         for slime in self.population.iter_mut() {
+            // Step 1: Move
             if let Some((nearest_food, distance)) = slime.nearest_food(foods) {
-                if (distance - slime.size()) <= slime.vision_range {
+                if (distance - slime.size) <= slime.vision_range {
                     let direction = get_angle_direction(slime.position, nearest_food.position);
                     let speed = polar_to_cartesian(slime.speed_factor.min(distance), direction);
                     slime.position += speed;
                     slime.position = wrap_around(&slime.position);
+                }
+            }
+            // Step 2: Eat
+            let mut i = 0;
+            while i < foods.len() {
+                if slime.is_point_inside(foods[i].position, 0.0) {
+                    slime.add_energy(foods[i].energy);
+                    foods.remove(i);
+                } else {
+                    i += 1;
                 }
             }
         }

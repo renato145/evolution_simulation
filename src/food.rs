@@ -9,7 +9,7 @@ pub const FOOD_SIZE: f32 = 2.0;
 
 pub struct Food {
     pub position: Vec2,
-    energy: f32,
+    pub energy: f32,
     speed_factor: f32,
     speed: Vec2,
 }
@@ -86,11 +86,14 @@ impl FoodController {
         }
     }
 
-    pub fn update_positions(&mut self) {
+    /// 1. Update all food positions.
+    /// 2. Check to spawn more food.
+    pub fn update_step(&mut self) {
         for food in self.population.iter_mut() {
             food.position += food.speed;
             food.position = wrap_around(&food.position);
         }
+        self.check_spawn();
     }
 }
 

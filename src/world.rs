@@ -1,3 +1,5 @@
+use std::ops::Div;
+
 use crate::{
     food::{FoodController, FOOD_SIZE},
     slime::SlimeController,
@@ -27,16 +29,14 @@ impl World {
             clear_background(BLACK);
 
             // Updates
-            self.food_controller.update_positions();
-            self.food_controller.check_spawn();
-
+            self.food_controller.update_step();
             self.slime_controller
-                .update_positions(&self.food_controller.population);
+                .update_step(&mut self.food_controller.population);
 
             // Draws
-            self.draw_status();
             self.draw_food();
             self.draw_slimes();
+            self.draw_status();
             next_frame().await
         }
     }
@@ -64,9 +64,32 @@ impl World {
     }
 
     fn draw_slimes(&self) {
-        self.slime_controller
-            .population
-            .iter()
-            .for_each(|f| draw_circle(f.position.x, f.position.y, f.size(), RED));
+        let mouse = {
+            let (x, y) = mouse_position();
+            vec2(x, y)
+        };
+        self.slime_controller.population.iter().for_each(|slime| {
+            let hovered = slime.is_point_inside(mouse, slime.size_vision());
+            let color = if hovered { BLUE } else { RED };
+            draw_circle(slime.position.x, slime.position.y, slime.size(), color);
+            if hovered {
+                draw_circle_lines(
+                    slime.position.x,
+                    slime.position.y,
+                    slime.size_vision(),
+                    1.0,
+                    YELLOW,
+                );
+                let text = format!("{:.0}", slime.energy());
+                let size = measure_text(&text, None, 25, 1.0);
+                draw_text(
+                    &format!("{:.0}", slime.energy()),
+                    slime.position.x - size.width.div(2.0),
+                    slime.position.y - 10.0,
+                    25.0,
+                    WHITE,
+                );
+            }
+        });
     }
 }
