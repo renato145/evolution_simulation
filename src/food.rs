@@ -7,13 +7,13 @@ use std::f32::consts::PI;
 
 pub struct Food {
     pub position: Vec2,
-    energy: usize,
+    energy: f32,
     speed_factor: f32,
     speed: Vec2,
 }
 
 impl Food {
-    pub fn spawn(energy_range: (usize, usize), speed_range: (f32, f32)) -> Self {
+    pub fn spawn(energy_range: (f32, f32), speed_range: (f32, f32)) -> Self {
         let energy = gen_range(energy_range.0, energy_range.1);
         // Get speed as proportional to energy
         let speed_factor = speed_range.0
@@ -36,7 +36,7 @@ pub struct FoodController {
     spawn_time: f64,
     /// Maximum number of food instances that can exist at the same time.
     limit: usize,
-    energy_range: (usize, usize),
+    energy_range: (f32, f32),
     speed_range: (f32, f32),
     last_spawn_time: f64,
     pub population: Vec<Food>,
@@ -46,7 +46,7 @@ impl FoodController {
     pub fn new(
         spawn_time: f64,
         limit: usize,
-        energy_range: (usize, usize),
+        energy_range: (f32, f32),
         speed_range: (f32, f32),
     ) -> Self {
         Self {

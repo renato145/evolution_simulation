@@ -7,7 +7,7 @@ pub struct World {
 
 impl World {
     pub fn new(initial_food: usize) -> Self {
-        let mut food_spawner = FoodController::new(0.2, 100, (1, 10), (0.5, 3.0));
+        let mut food_spawner = FoodController::new(0.2, 100, (1.0, 10.0), (0.5, 3.0));
         food_spawner.spawn_n(initial_food);
         Self { food_spawner }
     }
