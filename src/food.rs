@@ -5,6 +5,8 @@ use macroquad::prelude::*;
 use macroquad::rand::gen_range;
 use std::f32::consts::PI;
 
+pub const FOOD_SIZE: f32 = 2.0;
+
 pub struct Food {
     pub position: Vec2,
     energy: f32,
