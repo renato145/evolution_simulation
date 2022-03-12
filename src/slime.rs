@@ -4,7 +4,7 @@ use crate::{
     food::Food,
     utils::{get_angle_direction, random_screen_position, wrap_around},
 };
-use macroquad::prelude::*;
+use macroquad::{prelude::*, rand::gen_range};
 
 /// When slime is below this threshold, its free to move without energy cost.
 const FREE_MOVEMENT_TH: f32 = 5.0;
@@ -17,7 +17,9 @@ const JUMP_DISTANCE: f32 = 10.0;
 /// Minimum energy required to be able to jump.
 const JUMP_REQUIREMENT: f32 = 25.0;
 /// Every time a slime collects this amount of energy, it can evolve.
-const _EVOLVE_REQUIREMENT: f32 = 50.0;
+const EVOLVE_REQUIREMENT: f32 = 50.0;
+/// Maximum number of skills.
+const EVOLVE_LIMIT: usize = 5;
 /// Slimes need at least this amount of energy to be able to breed.
 const BREEDING_REQUIREMENT: f32 = 50.0;
 /// Time cooldown for slimes to breed.
@@ -30,21 +32,108 @@ pub enum SlimeState {
     Breeding,
 }
 
-#[derive(Clone)]
-pub enum Skill {
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum SkillType {
     /// Increase the range of vision to detect food.
-    Vision(usize),
+    Vision,
     /// Reduces the energy needed to move around.
-    Efficiency(usize),
+    Efficiency,
     /// Reduces jump cooldown.
-    Jumper(usize),
+    Jumper,
+}
+
+impl SkillType {
+    fn random() -> Self {
+        match gen_range(0, 3) {
+            1 => Self::Vision,
+            2 => Self::Efficiency,
+            3 => Self::Jumper,
+            _ => unreachable!(),
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct Skill {
+    skill_type: SkillType,
+    level: usize,
+}
+
+impl Skill {
+    pub fn new(skill_type: SkillType, level: usize) -> Self {
+        Self { skill_type, level }
+    }
+
+    fn merge(self, other: Self) -> Skills {
+        use self::SkillType::*;
+        match (self.skill_type, other.skill_type) {
+            (Vision, Vision) => Skill::new(Vision, self.level + other.level).into(),
+            (Efficiency, Efficiency) => Skill::new(Efficiency, self.level + other.level).into(),
+            (Jumper, Jumper) => Skill::new(Jumper, self.level + other.level).into(),
+            (_, _) => Skills(vec![self, other]),
+        }
+    }
+}
+
+impl From<Skill> for Skills {
+    fn from(skill: Skill) -> Self {
+        Skills(vec![skill])
+    }
+}
+
+#[derive(Clone)]
+pub struct Skills(Vec<Skill>);
+
+impl Skills {
+    fn new() -> Self {
+        Self(Vec::new())
+    }
+
+    fn count(&self) -> usize {
+        self.0.iter().map(|s| s.level).sum()
+    }
+
+    fn add_skill(&mut self, skill_type: SkillType) {
+        for skill in self.0.iter_mut() {
+            if skill.skill_type == skill_type {
+                skill.level += 1;
+                return;
+            }
+        }
+        self.0.push(Skill::new(skill_type, 1));
+    }
+
+    /// Chooses a random skill and returns it with the level reduced in half (rounded up).
+    fn inherit(&self) -> Option<Skill> {
+        match self.0.len() {
+            0 => None,
+            1 => Some(Skill::new(
+                self.0[0].skill_type,
+                (self.0[0].level as f32 / 2.0).ceil() as usize,
+            )),
+            _ => {
+                let i = gen_range(0, self.count());
+                let mut acc = 0;
+                for skill in &self.0 {
+                    acc += skill.level;
+                    if acc >= i {
+                        return Some(Skill::new(
+                            self.0[i].skill_type,
+                            (self.0[0].level as f32 / 2.0).ceil() as usize,
+                        ));
+                    }
+                }
+                unreachable!();
+            }
+        }
+    }
 }
 
 #[derive(Clone)]
 pub struct Slime {
     pub position: Vec2,
     pub state: SlimeState,
-    pub skills: Vec<Skill>,
+    pub skills: Skills,
     speed_factor: f32,
     energy: f32,
     size: f32,
@@ -53,10 +142,13 @@ pub struct Slime {
     jump_cooldown: f32,
     last_jump: f32,
     last_breed: f32,
+    next_skill_goal: f32,
+    skill_path: SkillType,
 }
 
 impl Slime {
-    pub fn spawn(
+    pub fn new(
+        position: Vec2,
         speed_factor: f32,
         energy: f32,
         step_cost: f32,
@@ -64,9 +156,9 @@ impl Slime {
         jump_cooldown: f32,
     ) -> Self {
         let mut slime = Self {
-            position: random_screen_position(),
+            position,
             state: SlimeState::Normal,
-            skills: Vec::new(),
+            skills: Skills::new(),
             speed_factor,
             energy,
             size: 0.0,
@@ -75,9 +167,28 @@ impl Slime {
             jump_cooldown,
             last_jump: 0.0,
             last_breed: 0.0,
+            next_skill_goal: EVOLVE_REQUIREMENT,
+            skill_path: SkillType::random(),
         };
         slime.update_size();
         slime
+    }
+
+    pub fn spawn(
+        speed_factor: f32,
+        energy: f32,
+        step_cost: f32,
+        vision_range: f32,
+        jump_cooldown: f32,
+    ) -> Self {
+        Self::new(
+            random_screen_position(),
+            speed_factor,
+            energy,
+            step_cost,
+            vision_range,
+            jump_cooldown,
+        )
     }
 
     /// Get the slime's step cost.
@@ -171,7 +282,12 @@ impl Slime {
             && ((time - self.last_breed) >= BREEDING_COOLDOWN)
     }
 
-    /// Returns a new `Slime` with an initial energy.
+    fn is_evolve_ready(&self) -> bool {
+        self.energy >= self.next_skill_goal
+    }
+
+    /// Returns a new `Slime` with an initial energy. It will randomly inherit one skill
+    /// from each parent at random reducing its level by half (rounding up).
     fn breed(&mut self, partner: &mut Self, energy: f32, time: f32) -> Self {
         self.last_breed = time;
         self.state = SlimeState::Breeding;
@@ -179,21 +295,21 @@ impl Slime {
         partner.last_breed = time;
         partner.state = SlimeState::Breeding;
         partner.add_energy(-energy);
-        let skills = Vec::new();
-        let mut child = Self {
-            position: self.position,
-            state: SlimeState::Normal,
-            skills,
-            speed_factor: self.speed_factor,
-            energy,
-            size: 0.0,
-            step_cost: self.step_cost,
-            vision_range: self.vision_range,
-            jump_cooldown: self.jump_cooldown,
-            last_jump: 0.0,
-            last_breed: 0.0,
+        let skills = match (self.skills.inherit(), partner.skills.inherit()) {
+            (None, None) => Skills::new(),
+            (None, Some(s)) => s.into(),
+            (Some(s), None) => s.into(),
+            (Some(sa), Some(sb)) => sa.merge(sb),
         };
-        child.update_size();
+        let mut child = Self::new(
+            self.position,
+            self.speed_factor,
+            energy,
+            self.step_cost,
+            self.vision_range,
+            self.jump_cooldown,
+        );
+        child.skills = skills;
         child
     }
 }
@@ -264,6 +380,7 @@ impl SlimeController {
     /// 2. If on top a food, eat it.
     /// 3. If possible try to breed.
     /// 4. If didn't eat or breed, check if slime can jump.
+    /// 5. Check if it can evolve.
     /// At the end of the loop childs (step 3) are added to population.
     pub fn update_step(&mut self, foods: &mut Vec<Food>) {
         self.check_time_cost();
@@ -342,6 +459,16 @@ impl SlimeController {
                 }
             }
 
+            // Step 5: Evolve
+            if slime.is_evolve_ready() {
+                slime.skills.add_skill(slime.skill_path);
+                if slime.skills.count() >= EVOLVE_LIMIT {
+                    slime.next_skill_goal = std::f32::MAX;
+                } else {
+                    slime.next_skill_goal += EVOLVE_REQUIREMENT;
+                }
+            }
+
             self.population[idx] = slime;
         }
 
@@ -366,19 +493,7 @@ mod tests {
 
     impl Slime {
         pub fn create_test(position: Vec2) -> Self {
-            Self {
-                position,
-                state: SlimeState::Normal,
-                skills: Vec::new(),
-                speed_factor: 1.0,
-                energy: 10.0,
-                size: 1.0,
-                step_cost: 0.1,
-                vision_range: 10.0,
-                jump_cooldown: 2.0,
-                last_jump: 0.0,
-                last_breed: 0.0,
-            }
+            Self::new(position, 1.0, 10.0, 0.1, 10.0, 2.0)
         }
     }
 
@@ -389,5 +504,12 @@ mod tests {
         let (i, distance) = slime.nearest_position(positions.into_iter()).unwrap();
         println!("distance={}", distance);
         assert_eq!(i, 1);
+    }
+
+    #[test]
+    fn asd() {
+        for _ in 0..100 {
+            println!("{}", gen_range(0, 2));
+        }
     }
 }
