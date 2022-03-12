@@ -1,6 +1,6 @@
 use crate::{
     food::{FoodController, FOOD_SIZE},
-    slime::{Skills, SlimeController, SlimeState},
+    slime::{SlimeController, SlimeState},
 };
 use human_format::Formatter;
 use macroquad::{
