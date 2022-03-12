@@ -329,6 +329,11 @@ impl Slime {
             (Some(sa), Some(sb)) => sa.merge(sb),
         };
         child.skills = skills;
+        child.next_skill_goal = if child.skills.count_levels() == EVOLVE_LIMIT {
+            std::f32::MAX
+        } else {
+            (child.skills.count_levels() + 1) as f32 * EVOLVE_REQUIREMENT
+        };
         child
     }
 }
