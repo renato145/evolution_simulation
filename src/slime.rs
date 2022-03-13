@@ -15,13 +15,13 @@ const JUMP_COST: f32 = 2.5;
 /// Jump distance.
 const JUMP_DISTANCE: f32 = 10.0;
 /// Minimum energy required to be able to jump.
-const JUMP_REQUIREMENT: f32 = 25.0;
+const JUMP_REQUIREMENT: f32 = 20.0;
 /// Every time a slime collects this amount of energy, it can evolve.
 const EVOLVE_REQUIREMENT: f32 = 50.0;
 /// Maximum number of skills.
 const EVOLVE_LIMIT: usize = 30;
 /// Slimes need at least this amount of energy to be able to breed.
-const BREEDING_REQUIREMENT: f32 = 120.0;
+const BREEDING_REQUIREMENT: f32 = 100.0;
 /// Time cooldown for slimes to breed.
 const BREEDING_COOLDOWN: f32 = 1000.0;
 
@@ -332,7 +332,7 @@ impl Slime {
             / 9.0
     }
 
-    fn is_breed_ready(&self, time: f32) -> bool {
+    pub fn is_breed_ready(&self, time: f32) -> bool {
         (self.state != SlimeState::Breeding)
             && (self.energy >= BREEDING_REQUIREMENT)
             && ((time - self.last_breed) >= BREEDING_COOLDOWN)

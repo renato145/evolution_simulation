@@ -76,12 +76,16 @@ impl World {
         self.slime_controller.population.iter().for_each(|slime| {
             let hovered = slime.is_point_inside(mouse, slime.size_vision());
             let color = if hovered {
-                BLUE
+                if slime.is_breed_ready(self.time) {
+                    PINK
+                } else {
+                    BLUE
+                }
             } else {
                 match slime.state {
                     SlimeState::Normal => RED,
                     SlimeState::Jumping => LIME,
-                    SlimeState::Breeding => PINK,
+                    SlimeState::Breeding => VIOLET,
                 }
             };
             draw_circle(slime.position.x, slime.position.y, slime.size(), color);
