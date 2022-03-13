@@ -126,18 +126,19 @@ impl Skills {
         }
     }
 
-    /// Chooses a random skill and returns it with the level reduced by 1/10 (rounded up).
+    /// Chooses a random skill and returns it with the level reduced by 2..=10 (rounded up).
     fn inherit(&self) -> Option<Skills> {
+        let f = gen_range(2.0, 10.0);
         match self.unique_skills() {
             0 => None,
             1 => {
                 let mut vej = (0, 0, 0);
                 if self.vision > 0 {
-                    vej.0 += (self.vision as f32 / 10.0).ceil() as usize
+                    vej.0 += (self.vision as f32 / f).ceil() as usize
                 } else if self.efficiency > 0 {
-                    vej.1 += (self.efficiency as f32 / 10.0).ceil() as usize
+                    vej.1 += (self.efficiency as f32 / f).ceil() as usize
                 } else {
-                    vej.2 += (self.jumper as f32 / 10.0).ceil() as usize
+                    vej.2 += (self.jumper as f32 / f).ceil() as usize
                 }
                 Some(vej.into())
             }
@@ -145,11 +146,11 @@ impl Skills {
                 let mut vej = (0, 0, 0);
                 let i = gen_range(0, self.count_levels());
                 if i <= self.vision {
-                    vej.0 += (self.vision as f32 / 10.0).ceil() as usize
+                    vej.0 += (self.vision as f32 / f).ceil() as usize
                 } else if i <= (self.vision + self.efficiency) {
-                    vej.1 += (self.efficiency as f32 / 10.0).ceil() as usize
+                    vej.1 += (self.efficiency as f32 / f).ceil() as usize
                 } else {
-                    vej.2 += (self.jumper as f32 / 10.0).ceil() as usize
+                    vej.2 += (self.jumper as f32 / f).ceil() as usize
                 }
                 Some(vej.into())
             }
@@ -341,7 +342,7 @@ impl Slime {
     }
 
     /// Returns a new `Slime` with an initial energy. It will randomly inherit one skill
-    /// from each parent at random reducing its level by 1/10 (rounding up).
+    /// from each parent at random reducing its level by 2..=10 (rounded up).
     fn breed(&mut self, partner: &mut Self, energy: f32, time: f32) -> Self {
         self.last_breed = time;
         self.state = SlimeState::Breeding;
