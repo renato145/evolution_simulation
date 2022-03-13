@@ -22,8 +22,6 @@ const EVOLVE_REQUIREMENT: f32 = 50.0;
 const EVOLVE_LIMIT: usize = 30;
 /// Slimes need at least this amount of energy to be able to breed.
 const BREEDING_REQUIREMENT: f32 = 100.0;
-/// Time cooldown for slimes to breed.
-const BREEDING_COOLDOWN: f32 = 1000.0;
 
 #[derive(Clone)]
 pub struct SlimeConfig {
@@ -257,12 +255,13 @@ impl Slime {
         idx: usize,
         slimes: &[Slime],
         time: f32,
+        breeding_cooldown: f32,
     ) -> Option<(usize, f32)> {
         let (idxs, positions): (Vec<_>, Vec<_>) = slimes
             .iter()
             .enumerate()
             .filter_map(|(i, s)| {
-                if (i != idx) && (s.is_breed_ready(time)) {
+                if (i != idx) && (s.is_breed_ready(time, breeding_cooldown)) {
                     Some((i, s.position))
                 } else {
                     None
@@ -332,10 +331,10 @@ impl Slime {
             / 9.0
     }
 
-    pub fn is_breed_ready(&self, time: f32) -> bool {
+    pub fn is_breed_ready(&self, time: f32, breeding_cooldown: f32) -> bool {
         (self.state != SlimeState::Breeding)
             && (self.energy >= BREEDING_REQUIREMENT)
-            && ((time - self.last_breed) >= BREEDING_COOLDOWN)
+            && ((time - self.last_breed) >= breeding_cooldown)
     }
 
     fn is_evolve_ready(&self) -> bool {
@@ -375,16 +374,19 @@ pub struct SlimeController {
     pub population: Vec<Slime>,
     /// How often (time steps) slimes consume 1 energy.
     pub time_cost_freq: f32,
+    /// Time cooldown for slimes to breed.
+    pub breeding_cooldown: f32,
 }
 
 impl SlimeController {
-    pub fn new(config: SlimeConfig, time_cost_freq: f32) -> Self {
+    pub fn new(config: SlimeConfig, time_cost_freq: f32, breeding_cooldown: f32) -> Self {
         Self {
             time: 0.0,
             config,
             last_time_cost: 0.0,
             population: Vec::new(),
             time_cost_freq,
+            breeding_cooldown,
         }
     }
 
@@ -428,14 +430,17 @@ impl SlimeController {
             // Step 1: Move
             let mut slime = self.population[idx].clone();
             let mut target_position_distance = None;
-            let breed_ready = slime.is_breed_ready(self.time);
+            let breed_ready = slime.is_breed_ready(self.time, self.breeding_cooldown);
             let mut breeding_target = None;
 
             // - Get target position distance
             if breed_ready {
-                if let Some((i, distance)) =
-                    slime.nearest_breeding_slime(idx, &self.population, self.time)
-                {
+                if let Some((i, distance)) = slime.nearest_breeding_slime(
+                    idx,
+                    &self.population,
+                    self.time,
+                    self.breeding_cooldown,
+                ) {
                     if (distance - slime.size) <= slime.vision_range() {
                         target_position_distance = Some((self.population[i].position, distance));
                         breeding_target = Some(i);

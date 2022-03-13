@@ -23,7 +23,7 @@ pub struct World {
 impl World {
     pub fn new(initial_food: usize, initial_slimes: usize) -> Self {
         let food_controller = FoodController::new(5.0, 200.0, (2.5, 20.0), (0.5, 2.2));
-        let slime_controller = SlimeController::new(SlimeConfig::default(), 20.0);
+        let slime_controller = SlimeController::new(SlimeConfig::default(), 20.0, 300.0);
         let mut world = Self {
             food_controller,
             slime_controller,
@@ -76,7 +76,7 @@ impl World {
         self.slime_controller.population.iter().for_each(|slime| {
             let hovered = slime.is_point_inside(mouse, slime.size_vision());
             let color = if hovered {
-                if slime.is_breed_ready(self.time) {
+                if slime.is_breed_ready(self.time, self.slime_controller.breeding_cooldown) {
                     PINK
                 } else {
                     BLUE
@@ -293,13 +293,19 @@ impl World {
                             50.0..2500.0,
                             &mut self.slime_controller.config.jump_cooldown,
                         );
+                        ui.slider(
+                            hash!(),
+                            "Breeding cooldown",
+                            50.0..3000.0,
+                            &mut self.slime_controller.breeding_cooldown,
+                        );
                     });
                     ui.separator();
                     ui.tree_node(hash!(), "Skills", |ui| {
                         ui.slider(
                             hash!(),
                             "Vision",
-                            0.0..20.0,
+                            0.0..10.0,
                             &mut self.slime_controller.config.vision_skill,
                         );
                         ui.slider(
@@ -311,7 +317,7 @@ impl World {
                         ui.slider(
                             hash!(),
                             "Jumper",
-                            0.0..20.0,
+                            0.0..100.0,
                             &mut self.slime_controller.config.jumper_skill,
                         );
                     });
