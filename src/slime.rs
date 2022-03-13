@@ -7,9 +7,7 @@ use crate::{
 use macroquad::{prelude::*, rand::gen_range};
 
 /// When slime is below this threshold, its free to move without energy cost.
-const FREE_MOVEMENT_TH: f32 = 10.0;
-/// How often (time steps) slimes consume 1 energy.
-const TIME_COST_FREQ: f32 = 10.0;
+const FREE_MOVEMENT_TH: f32 = 15.0;
 /// Energy cost to jump.
 const JUMP_COST: f32 = 2.5;
 /// Jump distance.
@@ -362,15 +360,18 @@ pub struct SlimeController {
     pub config: SlimeConfig,
     pub last_time_cost: f32,
     pub population: Vec<Slime>,
+    /// How often (time steps) slimes consume 1 energy.
+    pub time_cost_freq: f32,
 }
 
 impl SlimeController {
-    pub fn new(config: SlimeConfig) -> Self {
+    pub fn new(config: SlimeConfig, time_cost_freq: f32) -> Self {
         Self {
             time: 0.0,
             config,
             last_time_cost: 0.0,
             population: Vec::new(),
+            time_cost_freq,
         }
     }
 
@@ -384,7 +385,7 @@ impl SlimeController {
 
     /// Check timer for time cost.
     pub fn check_time_cost(&mut self) {
-        if (self.time - self.last_time_cost) >= TIME_COST_FREQ {
+        if (self.time - self.last_time_cost) >= self.time_cost_freq {
             let mut i = 0;
             while i < self.population.len() {
                 self.population[i].add_energy(-1.0);
