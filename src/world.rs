@@ -15,11 +15,12 @@ pub struct World {
     slime_controller: SlimeController,
     simulation_speed: f32,
     time: f32,
+    settings_open: bool,
 }
 
 impl World {
-    pub fn new(initial_food: usize, initial_slimes: usize, food_limit: usize) -> Self {
-        let mut food_controller = FoodController::new(5.0, food_limit, (5.0, 15.0), (0.5, 3.0));
+    pub fn new(initial_food: usize, initial_slimes: usize) -> Self {
+        let mut food_controller = FoodController::new(5.0, 200, (5.0, 15.0), (0.5, 3.0));
         food_controller.spawn_n(initial_food);
         let mut slime_controller = SlimeController::new(1.8, 30.0, 0.1, 40.0, 300.0);
         slime_controller.spawn_n(initial_slimes);
@@ -28,6 +29,7 @@ impl World {
             slime_controller,
             simulation_speed: 1.0,
             time: 0.0,
+            settings_open: false,
         }
     }
 
@@ -171,6 +173,62 @@ impl World {
     }
 
     fn draw_ui(&mut self) {
+        // All settings
+        widgets::Window::new(hash!(), vec2(5.0, 5.0), vec2(100.0, 25.0))
+            .movable(false)
+            .titlebar(false)
+            .ui(&mut *root_ui(), |ui| {
+                if ui.button(
+                    None,
+                    if self.settings_open {
+                        "Close settings"
+                    } else {
+                        "Open settings"
+                    },
+                ) {
+                    self.settings_open = !self.settings_open;
+                }
+            });
+
+        if self.settings_open {
+            widgets::Window::new(hash!(), vec2(5.0, 35.0), vec2(300.0, 250.0))
+                .label("Settings")
+                .ui(&mut *root_ui(), |ui| {
+                    ui.tree_node(hash!(), "Food", |ui| {
+                        ui.label(None, "Spawn time");
+                        ui.label(None, "Limit");
+                        ui.label(None, "Min energy");
+                        ui.label(None, "Max energy");
+                        ui.label(None, "Min speed");
+                        ui.label(None, "Max speed");
+                    });
+                    ui.separator();
+                    ui.tree_node(hash!(), "Slimes", |ui| {
+                        ui.label(None, "Speed factor");
+                        ui.label(None, "Initial energy");
+                        ui.label(None, "Step cost");
+                        ui.label(None, "Vision range");
+                        ui.label(None, "Jump cooldown");
+                    });
+                    ui.separator();
+                    ui.tree_node(hash!(), "Skills", |ui| {
+                        ui.label(None, "Vision");
+                        ui.label(None, "Efficiency");
+                        ui.label(None, "Jumper");
+                    });
+                    ui.separator();
+                    if ui.button(None, "Reset") {
+                        println!("TODO");
+                    }
+                    if ui.button(None, "Spawn food") {
+                        println!("TODO");
+                    }
+                    if ui.button(None, "Spawn slime") {
+                        println!("TODO");
+                    }
+                });
+        }
+        // Simulation speed
         widgets::Window::new(
             hash!(),
             vec2(25.0, screen_height() - 35.0 - 25.0),
