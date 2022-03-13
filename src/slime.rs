@@ -50,9 +50,9 @@ impl Default for SlimeConfig {
             step_cost: 0.05,
             vision_range: 40.0,
             jump_cooldown: 300.0,
-            vision_skill: 4.0,
-            efficiency_skill: 2.5,
-            jumper_skill: 5.0,
+            vision_skill: 1.7,
+            efficiency_skill: 4.5,
+            jumper_skill: 20.0,
         }
     }
 }
