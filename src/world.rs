@@ -22,8 +22,8 @@ pub struct World {
 
 impl World {
     pub fn new(initial_food: usize, initial_slimes: usize) -> Self {
-        let food_controller = FoodController::new(5.0, 200.0, (5.0, 15.0), (0.5, 3.0));
-        let slime_controller = SlimeController::new(SlimeConfig::default(), 10.0);
+        let food_controller = FoodController::new(8.0, 200.0, (2.5, 20.0), (0.5, 2.5));
+        let slime_controller = SlimeController::new(SlimeConfig::default(), 20.0);
         let mut world = Self {
             food_controller,
             slime_controller,

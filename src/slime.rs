@@ -1,5 +1,7 @@
 //! # Slime entity.
 #![doc = include_str!("../docs/slime.md")]
+use std::f32::consts::PI;
+
 use crate::{
     food::Food,
     utils::{get_angle_direction, random_screen_position, wrap_around},
@@ -45,12 +47,12 @@ impl Default for SlimeConfig {
         Self {
             initial_energy: 30.0,
             speed_factor: 1.8,
-            step_cost: 0.1,
+            step_cost: 0.05,
             vision_range: 40.0,
             jump_cooldown: 300.0,
             vision_skill: 4.0,
-            efficiency_skill: 2.0,
-            jumper_skill: 4.0,
+            efficiency_skill: 2.5,
+            jumper_skill: 5.0,
         }
     }
 }
@@ -172,6 +174,7 @@ pub struct Slime {
     pub state: SlimeState,
     pub skills: Skills,
     pub config: SlimeConfig,
+    speed: Vec2,
     energy: f32,
     size: f32,
     last_jump: f32,
@@ -182,10 +185,13 @@ pub struct Slime {
 
 impl Slime {
     pub fn new(position: Vec2, config: SlimeConfig) -> Self {
+        let direction = gen_range(0.0, PI * 2.0);
+        let speed = polar_to_cartesian(config.speed_factor, direction);
         let mut slime = Self {
             position,
             state: SlimeState::Normal,
             skills: Skills::new(),
+            speed,
             energy: config.initial_energy,
             config,
             size: 0.0,
@@ -300,6 +306,13 @@ impl Slime {
             let mult = (self.energy / 100.0).max(1.0);
             self.add_energy(-self.step_cost() * mult);
         }
+    }
+
+    /// Move 1 step
+    fn move_step(&mut self) {
+        self.position += self.speed;
+        self.position = wrap_around(&self.position);
+        self.apply_movement_cost();
     }
 
     /// Get the slime's jump cooldown considering skill modifications.
@@ -437,14 +450,12 @@ impl SlimeController {
                 }
             }
 
-            // - Move to target
+            // - Update speed and move
             if let Some((position, distance)) = target_position_distance {
                 let direction = get_angle_direction(slime.position, position);
-                let speed = polar_to_cartesian(slime.speed_factor().min(distance), direction);
-                slime.position += speed;
-                slime.position = wrap_around(&slime.position);
-                slime.apply_movement_cost();
+                slime.speed = polar_to_cartesian(slime.speed_factor().min(distance), direction);
             }
+            slime.move_step();
 
             // Step 2: Eat
             let mut i = 0;
