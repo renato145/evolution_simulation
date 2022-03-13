@@ -41,14 +41,14 @@ pub struct SlimeConfig {
 impl Default for SlimeConfig {
     fn default() -> Self {
         Self {
-            initial_energy: 30.0,
+            initial_energy: 65.0,
             speed_factor: 1.8,
-            step_cost: 0.05,
-            vision_range: 40.0,
-            jump_cooldown: 300.0,
+            step_cost: 0.18,
+            vision_range: 45.0,
+            jump_cooldown: 500.0,
             vision_skill: 1.7,
-            efficiency_skill: 4.5,
-            jumper_skill: 20.0,
+            efficiency_skill: 8.5,
+            jumper_skill: 30.0,
         }
     }
 }
@@ -126,18 +126,18 @@ impl Skills {
         }
     }
 
-    /// Chooses a random skill and returns it with the level reduced by 1/3 (rounded up).
+    /// Chooses a random skill and returns it with the level reduced by 1/10 (rounded up).
     fn inherit(&self) -> Option<Skills> {
         match self.unique_skills() {
             0 => None,
             1 => {
                 let mut vej = (0, 0, 0);
                 if self.vision > 0 {
-                    vej.0 += (self.vision as f32 / 3.0).ceil() as usize
+                    vej.0 += (self.vision as f32 / 10.0).ceil() as usize
                 } else if self.efficiency > 0 {
-                    vej.1 += (self.efficiency as f32 / 3.0).ceil() as usize
+                    vej.1 += (self.efficiency as f32 / 10.0).ceil() as usize
                 } else {
-                    vej.2 += (self.jumper as f32 / 3.0).ceil() as usize
+                    vej.2 += (self.jumper as f32 / 10.0).ceil() as usize
                 }
                 Some(vej.into())
             }
@@ -145,11 +145,11 @@ impl Skills {
                 let mut vej = (0, 0, 0);
                 let i = gen_range(0, self.count_levels());
                 if i <= self.vision {
-                    vej.0 += (self.vision as f32 / 3.0).ceil() as usize
+                    vej.0 += (self.vision as f32 / 10.0).ceil() as usize
                 } else if i <= (self.vision + self.efficiency) {
-                    vej.1 += (self.efficiency as f32 / 3.0).ceil() as usize
+                    vej.1 += (self.efficiency as f32 / 10.0).ceil() as usize
                 } else {
-                    vej.2 += (self.jumper as f32 / 3.0).ceil() as usize
+                    vej.2 += (self.jumper as f32 / 10.0).ceil() as usize
                 }
                 Some(vej.into())
             }
@@ -341,7 +341,7 @@ impl Slime {
     }
 
     /// Returns a new `Slime` with an initial energy. It will randomly inherit one skill
-    /// from each parent at random reducing its level by 1/3 (rounding up).
+    /// from each parent at random reducing its level by 1/10 (rounding up).
     fn breed(&mut self, partner: &mut Self, energy: f32, time: f32) -> Self {
         self.last_breed = time;
         self.state = SlimeState::Breeding;
