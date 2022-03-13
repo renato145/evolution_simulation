@@ -20,8 +20,6 @@ const JUMP_REQUIREMENT: f32 = 20.0;
 const EVOLVE_REQUIREMENT: f32 = 50.0;
 /// Maximum number of skills.
 const EVOLVE_LIMIT: usize = 30;
-/// Slimes need at least this amount of energy to be able to breed.
-const BREEDING_REQUIREMENT: f32 = 100.0;
 
 #[derive(Clone)]
 pub struct SlimeConfig {
@@ -232,7 +230,7 @@ impl Slime {
 
     /// Set size as proportional to its energy.
     pub fn update_size(&mut self) {
-        self.size = (self.energy / 50.0).clamp(2.5, 30.0);
+        self.size = (self.energy / 50.0).clamp(1.5, 50.0);
     }
 
     /// Checks the nearst position and returns its index and distance.
@@ -331,9 +329,10 @@ impl Slime {
             / 9.0
     }
 
+    /// Needs to have at least 2.5 times the initial energy.
     pub fn is_breed_ready(&self, time: f32, breeding_cooldown: f32) -> bool {
         (self.state != SlimeState::Breeding)
-            && (self.energy >= BREEDING_REQUIREMENT)
+            && (self.energy >= self.config.initial_energy * 2.5)
             && ((time - self.last_breed) >= breeding_cooldown)
     }
 

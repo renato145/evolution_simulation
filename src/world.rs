@@ -65,7 +65,7 @@ impl World {
         self.food_controller
             .population
             .iter()
-            .for_each(|f| draw_circle(f.position.x, f.position.y, FOOD_SIZE, GREEN));
+            .for_each(|f| draw_rectangle(f.position.x, f.position.y, FOOD_SIZE, FOOD_SIZE, GREEN));
     }
 
     fn draw_slimes(&self) {
@@ -76,16 +76,16 @@ impl World {
         self.slime_controller.population.iter().for_each(|slime| {
             let hovered = slime.is_point_inside(mouse, slime.size_vision());
             let color = if hovered {
+                BLUE
+            } else {
                 if slime.is_breed_ready(self.time, self.slime_controller.breeding_cooldown) {
                     PINK
                 } else {
-                    BLUE
-                }
-            } else {
-                match slime.state {
-                    SlimeState::Normal => RED,
-                    SlimeState::Jumping => LIME,
-                    SlimeState::Breeding => VIOLET,
+                    match slime.state {
+                        SlimeState::Normal => RED,
+                        SlimeState::Jumping => LIME,
+                        SlimeState::Breeding => VIOLET,
+                    }
                 }
             };
             draw_circle(slime.position.x, slime.position.y, slime.size(), color);
