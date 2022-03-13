@@ -1,12 +1,11 @@
 //! # Slime entity.
 #![doc = include_str!("../docs/slime.md")]
-use std::f32::consts::PI;
-
 use crate::{
     food::Food,
     utils::{get_angle_direction, random_screen_position, wrap_around},
 };
 use macroquad::{prelude::*, rand::gen_range};
+use std::f32::consts::PI;
 
 /// When slime is below this threshold, its free to move without energy cost.
 const FREE_MOVEMENT_TH: f32 = 15.0;
@@ -20,6 +19,8 @@ const JUMP_REQUIREMENT: f32 = 20.0;
 const EVOLVE_REQUIREMENT: f32 = 50.0;
 /// Maximum number of skills.
 const EVOLVE_LIMIT: usize = 30;
+const SIZE_RANGE: (f32, f32) = (1.5, 50.0);
+const MAX_SIZE_SLOW: f32 = 0.6;
 
 #[derive(Clone)]
 pub struct SlimeConfig {
@@ -210,12 +211,15 @@ impl Slime {
         self.size
     }
 
-    /// Get the slime's speed factor considering skill modifications.
+    /// Get the slime's speed factor considering skill modifications and size reduction
+    /// (the bigger, the slower).
     pub fn speed_factor(&self) -> f32 {
+        let size_slower = 1.0 - (self.size * (1.0 - MAX_SIZE_SLOW) / SIZE_RANGE.1);
         self.config.speed_factor
             * (1.0
                 + (self.skills.vision as f32) / (EVOLVE_LIMIT as f32) * self.config.vision_skill
                     / 2.5)
+            * size_slower
     }
 
     /// Get the slime's vision range considering skill modifications.
@@ -231,7 +235,7 @@ impl Slime {
 
     /// Set size as proportional to its energy.
     pub fn update_size(&mut self) {
-        self.size = (self.energy / 50.0).clamp(1.5, 50.0);
+        self.size = (self.energy / 50.0).clamp(SIZE_RANGE.0, SIZE_RANGE.1);
     }
 
     /// Checks the nearst position and returns its index and distance.
