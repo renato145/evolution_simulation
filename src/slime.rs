@@ -20,7 +20,6 @@ const EVOLVE_REQUIREMENT: f32 = 50.0;
 /// Maximum number of skills.
 const EVOLVE_LIMIT: usize = 30;
 const SIZE_RANGE: (f32, f32) = (1.5, 50.0);
-const MAX_SIZE_SLOW: f32 = 0.6;
 
 #[derive(Clone)]
 pub struct SlimeConfig {
@@ -213,8 +212,8 @@ impl Slime {
 
     /// Get the slime's speed factor considering skill modifications and size reduction
     /// (the bigger, the slower).
-    pub fn speed_factor(&self) -> f32 {
-        let size_slower = 1.0 - (self.size * (1.0 - MAX_SIZE_SLOW) / SIZE_RANGE.1);
+    pub fn speed_factor(&self, max_size_slow: f32) -> f32 {
+        let size_slower = 1.0 - (self.size * max_size_slow / SIZE_RANGE.1);
         self.config.speed_factor
             * (1.0
                 + (self.skills.vision as f32) / (EVOLVE_LIMIT as f32) * self.config.vision_skill
@@ -380,10 +379,16 @@ pub struct SlimeController {
     pub time_cost_freq: f32,
     /// Time cooldown for slimes to breed.
     pub breeding_cooldown: f32,
+    pub max_size_slow: f32,
 }
 
 impl SlimeController {
-    pub fn new(config: SlimeConfig, time_cost_freq: f32, breeding_cooldown: f32) -> Self {
+    pub fn new(
+        config: SlimeConfig,
+        time_cost_freq: f32,
+        breeding_cooldown: f32,
+        max_size_slow: f32,
+    ) -> Self {
         Self {
             time: 0.0,
             config,
@@ -391,6 +396,7 @@ impl SlimeController {
             population: Vec::new(),
             time_cost_freq,
             breeding_cooldown,
+            max_size_slow,
         }
     }
 
@@ -462,7 +468,10 @@ impl SlimeController {
             // - Update speed and move
             if let Some((position, distance)) = target_position_distance {
                 let direction = get_angle_direction(slime.position, position);
-                slime.speed = polar_to_cartesian(slime.speed_factor().min(distance), direction);
+                slime.speed = polar_to_cartesian(
+                    slime.speed_factor(self.max_size_slow).min(distance),
+                    direction,
+                );
             }
             slime.move_step();
 

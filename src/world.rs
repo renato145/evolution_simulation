@@ -23,7 +23,7 @@ pub struct World {
 impl World {
     pub fn new(initial_food: usize, initial_slimes: usize) -> Self {
         let food_controller = FoodController::new(15.0, 300.0, (30.0, 90.0), (0.85, 2.2));
-        let slime_controller = SlimeController::new(SlimeConfig::default(), 8.0, 150.0);
+        let slime_controller = SlimeController::new(SlimeConfig::default(), 8.0, 150.0, 0.5);
         let mut world = Self {
             food_controller,
             slime_controller,
@@ -296,6 +296,12 @@ impl World {
                             "Breeding cooldown",
                             50.0..3000.0,
                             &mut self.slime_controller.breeding_cooldown,
+                        );
+                        ui.slider(
+                            hash!(),
+                            "Max size slow",
+                            0.0..1.0,
+                            &mut self.slime_controller.max_size_slow,
                         );
                     });
                     ui.separator();
