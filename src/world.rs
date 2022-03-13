@@ -1,6 +1,6 @@
 use crate::{
     food::{FoodController, FOOD_SIZE},
-    slime::{SlimeController, SlimeState},
+    slime::{SlimeConfig, SlimeController, SlimeState},
 };
 use human_format::Formatter;
 use macroquad::{
@@ -23,7 +23,7 @@ pub struct World {
 impl World {
     pub fn new(initial_food: usize, initial_slimes: usize) -> Self {
         let food_controller = FoodController::new(5.0, 200.0, (5.0, 15.0), (0.5, 3.0));
-        let slime_controller = SlimeController::new(1.8, 30.0, 0.1, 40.0, 300.0);
+        let slime_controller = SlimeController::new(SlimeConfig::default());
         let mut world = Self {
             food_controller,
             slime_controller,
@@ -257,38 +257,53 @@ impl World {
                             hash!(),
                             "Speed factor",
                             0.0..10.0,
-                            &mut self.slime_controller.speed_factor,
+                            &mut self.slime_controller.config.speed_factor,
                         );
                         ui.slider(
                             hash!(),
                             "Initial energy",
                             5.0..100.0,
-                            &mut self.slime_controller.initial_energy,
+                            &mut self.slime_controller.config.initial_energy,
                         );
                         ui.slider(
                             hash!(),
                             "Step cost",
-                            0.0..50.0,
-                            &mut self.slime_controller.initial_step_cost,
+                            0.0..10.0,
+                            &mut self.slime_controller.config.step_cost,
                         );
                         ui.slider(
                             hash!(),
                             "Vision range",
                             10.0..200.0,
-                            &mut self.slime_controller.initial_vision_range,
+                            &mut self.slime_controller.config.vision_range,
                         );
                         ui.slider(
                             hash!(),
                             "Jump cooldown",
                             50.0..2500.0,
-                            &mut self.slime_controller.initial_jump_cooldown,
+                            &mut self.slime_controller.config.jump_cooldown,
                         );
                     });
                     ui.separator();
                     ui.tree_node(hash!(), "Skills", |ui| {
-                        ui.label(None, "Vision");
-                        ui.label(None, "Efficiency");
-                        ui.label(None, "Jumper");
+                        ui.slider(
+                            hash!(),
+                            "Vision",
+                            0.0..20.0,
+                            &mut self.slime_controller.config.vision_skill,
+                        );
+                        ui.slider(
+                            hash!(),
+                            "Efficiency",
+                            0.0..20.0,
+                            &mut self.slime_controller.config.efficiency_skill,
+                        );
+                        ui.slider(
+                            hash!(),
+                            "Jumper",
+                            0.0..20.0,
+                            &mut self.slime_controller.config.jumper_skill,
+                        );
                     });
                     ui.separator();
                     if ui.button(None, "Reset") {
@@ -301,6 +316,7 @@ impl World {
                         self.slime_controller.spawn_one();
                     }
                 });
+            self.slime_controller.update_slime_configs();
         }
         // Simulation speed
         widgets::Window::new(

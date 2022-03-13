@@ -11,19 +11,51 @@ const FREE_MOVEMENT_TH: f32 = 10.0;
 /// How often (time steps) slimes consume 1 energy.
 const TIME_COST_FREQ: f32 = 10.0;
 /// Energy cost to jump.
-const JUMP_COST: f32 = 3.0;
+const JUMP_COST: f32 = 2.5;
 /// Jump distance.
 const JUMP_DISTANCE: f32 = 10.0;
 /// Minimum energy required to be able to jump.
 const JUMP_REQUIREMENT: f32 = 25.0;
 /// Every time a slime collects this amount of energy, it can evolve.
-const EVOLVE_REQUIREMENT: f32 = 40.0;
+const EVOLVE_REQUIREMENT: f32 = 50.0;
 /// Maximum number of skills.
-const EVOLVE_LIMIT: usize = 21;
+const EVOLVE_LIMIT: usize = 30;
 /// Slimes need at least this amount of energy to be able to breed.
 const BREEDING_REQUIREMENT: f32 = 120.0;
 /// Time cooldown for slimes to breed.
 const BREEDING_COOLDOWN: f32 = 1000.0;
+
+#[derive(Clone)]
+pub struct SlimeConfig {
+    pub initial_energy: f32,
+    pub speed_factor: f32,
+    pub step_cost: f32,
+    pub vision_range: f32,
+    pub jump_cooldown: f32,
+    // Augments speed factor by `1 + vision_skill / 2` and
+    // vision range by `1 + vision_skill`.
+    pub vision_skill: f32,
+    // Decrease step cost by `1 + efficiency_skill`.
+    pub efficiency_skill: f32,
+    // Augments jump distance by `1 + vision_skill / 10` and
+    // decreases jump cooldown by `1 + jumper_skill`.
+    pub jumper_skill: f32,
+}
+
+impl Default for SlimeConfig {
+    fn default() -> Self {
+        Self {
+            initial_energy: 30.0,
+            speed_factor: 1.8,
+            step_cost: 0.1,
+            vision_range: 40.0,
+            jump_cooldown: 300.0,
+            vision_skill: 4.0,
+            efficiency_skill: 2.0,
+            jumper_skill: 4.0,
+        }
+    }
+}
 
 #[derive(Clone, PartialEq, Eq)]
 pub enum SlimeState {
@@ -141,12 +173,9 @@ pub struct Slime {
     pub position: Vec2,
     pub state: SlimeState,
     pub skills: Skills,
-    speed_factor: f32,
+    pub config: SlimeConfig,
     energy: f32,
     size: f32,
-    step_cost: f32,
-    vision_range: f32,
-    jump_cooldown: f32,
     last_jump: f32,
     last_breed: f32,
     next_skill_goal: f32,
@@ -154,24 +183,14 @@ pub struct Slime {
 }
 
 impl Slime {
-    pub fn new(
-        position: Vec2,
-        speed_factor: f32,
-        energy: f32,
-        step_cost: f32,
-        vision_range: f32,
-        jump_cooldown: f32,
-    ) -> Self {
+    pub fn new(position: Vec2, config: SlimeConfig) -> Self {
         let mut slime = Self {
             position,
             state: SlimeState::Normal,
             skills: Skills::new(),
-            speed_factor,
-            energy,
+            energy: config.initial_energy,
+            config,
             size: 0.0,
-            step_cost,
-            vision_range,
-            jump_cooldown,
             last_jump: 0.0,
             last_breed: 0.0,
             next_skill_goal: EVOLVE_REQUIREMENT,
@@ -181,21 +200,8 @@ impl Slime {
         slime
     }
 
-    pub fn spawn(
-        speed_factor: f32,
-        energy: f32,
-        step_cost: f32,
-        vision_range: f32,
-        jump_cooldown: f32,
-    ) -> Self {
-        Self::new(
-            random_screen_position(),
-            speed_factor,
-            energy,
-            step_cost,
-            vision_range,
-            jump_cooldown,
-        )
+    pub fn spawn(config: SlimeConfig) -> Self {
+        Self::new(random_screen_position(), config)
     }
 
     /// Get the slime's size.
@@ -204,15 +210,18 @@ impl Slime {
     }
 
     /// Get the slime's speed factor considering skill modifications.
-    /// Max skill augmentation will increment it to 2x.
     pub fn speed_factor(&self) -> f32 {
-        self.speed_factor * (1.0 + (self.skills.vision as f32) / (EVOLVE_LIMIT as f32) * 1.0)
+        self.config.speed_factor
+            * (1.0
+                + (self.skills.vision as f32) / (EVOLVE_LIMIT as f32) * self.config.vision_skill
+                    / 2.5)
     }
 
     /// Get the slime's vision range considering skill modifications.
     /// Max skill augmentation will increment it to 5x.
     pub fn vision_range(&self) -> f32 {
-        self.vision_range * (1.0 + (self.skills.vision as f32) / (EVOLVE_LIMIT as f32) * 4.0)
+        self.config.vision_range
+            * (1.0 + (self.skills.vision as f32) / (EVOLVE_LIMIT as f32) * self.config.vision_skill)
     }
 
     pub fn size_vision(&self) -> f32 {
@@ -282,7 +291,10 @@ impl Slime {
     /// Get the slime's step cost considering skill modifications.
     /// Max skill augmentation will decrease it by 1/3.
     pub fn step_cost(&self) -> f32 {
-        self.step_cost / (1.0 + (self.skills.efficiency as f32) / (EVOLVE_LIMIT as f32) * 2.0)
+        self.config.step_cost
+            / (1.0
+                + (self.skills.efficiency as f32) / (EVOLVE_LIMIT as f32)
+                    * self.config.efficiency_skill)
     }
 
     fn apply_movement_cost(&mut self) {
@@ -295,11 +307,18 @@ impl Slime {
     /// Get the slime's jump cooldown considering skill modifications.
     /// Max skill augmentation will decrease it by 1/5.
     pub fn jump_cooldown(&self) -> f32 {
-        self.jump_cooldown / (1.0 + (self.skills.jumper as f32) / (EVOLVE_LIMIT as f32) * 4.0)
+        self.config.jump_cooldown
+            / (1.0 + (self.skills.jumper as f32) / (EVOLVE_LIMIT as f32) * self.config.jumper_skill)
     }
 
     fn is_jump_ready(&self, time: f32) -> bool {
         (self.energy >= JUMP_REQUIREMENT) && ((time - self.last_jump) >= self.jump_cooldown())
+    }
+
+    fn jump_distance(&self) -> f32 {
+        JUMP_DISTANCE
+            * (1.0 + (self.skills.jumper as f32) / (EVOLVE_LIMIT as f32) * self.config.jumper_skill)
+            / 9.0
     }
 
     fn is_breed_ready(&self, time: f32) -> bool {
@@ -321,14 +340,7 @@ impl Slime {
         partner.last_breed = time;
         partner.state = SlimeState::Breeding;
         partner.add_energy(-energy);
-        let mut child = Self::new(
-            self.position,
-            self.speed_factor,
-            energy,
-            self.step_cost,
-            self.vision_range,
-            self.jump_cooldown,
-        );
+        let mut child = Self::new(self.position, self.config.clone());
         let skills = match (self.skills.inherit(), partner.skills.inherit()) {
             (None, None) => Skills::new(),
             (None, Some(s)) => s,
@@ -346,44 +358,24 @@ impl Slime {
 }
 
 pub struct SlimeController {
-    pub speed_factor: f32,
-    pub initial_energy: f32,
-    pub initial_step_cost: f32,
-    pub initial_vision_range: f32,
-    pub initial_jump_cooldown: f32,
     time: f32,
+    pub config: SlimeConfig,
     pub last_time_cost: f32,
     pub population: Vec<Slime>,
 }
 
 impl SlimeController {
-    pub fn new(
-        speed_factor: f32,
-        initial_energy: f32,
-        initial_step_cost: f32,
-        initial_vision_range: f32,
-        initial_jump_cooldown: f32,
-    ) -> Self {
+    pub fn new(config: SlimeConfig) -> Self {
         Self {
-            speed_factor,
-            initial_energy,
-            initial_step_cost,
-            initial_vision_range,
-            initial_jump_cooldown,
             time: 0.0,
+            config,
             last_time_cost: 0.0,
             population: Vec::new(),
         }
     }
 
     pub fn spawn_one(&mut self) {
-        self.population.push(Slime::spawn(
-            self.speed_factor,
-            self.initial_energy,
-            self.initial_step_cost,
-            self.initial_vision_range,
-            self.initial_jump_cooldown,
-        ));
+        self.population.push(Slime::spawn(self.config.clone()));
     }
 
     pub fn spawn_n(&mut self, n: usize) {
@@ -471,7 +463,7 @@ impl SlimeController {
                 if let Some(i) = breeding_target {
                     let partner = &mut self.population[i];
                     if slime.is_point_inside(partner.position, 0.0) {
-                        childs.push(slime.breed(partner, self.initial_energy, self.time));
+                        childs.push(slime.breed(partner, self.config.initial_energy, self.time));
                     }
                 }
             }
@@ -479,7 +471,7 @@ impl SlimeController {
             // Step 4: Jump
             if !did_eat && (slime.state != SlimeState::Breeding) && slime.is_jump_ready(self.time) {
                 if let Some((i, distance)) = slime.nearest_food(foods) {
-                    if (distance - slime.size) <= JUMP_DISTANCE {
+                    if (distance - slime.size) <= slime.jump_distance() {
                         let nearest_food = &foods[i];
                         slime.position = nearest_food.position;
                         slime.add_energy(nearest_food.energy - JUMP_COST);
@@ -516,6 +508,12 @@ impl SlimeController {
             .iter_mut()
             .for_each(|s| s.state = SlimeState::Normal);
     }
+
+    pub fn update_slime_configs(&mut self) {
+        self.population.iter_mut().for_each(|s| {
+            s.config = self.config.clone();
+        });
+    }
 }
 
 #[cfg(test)]
@@ -524,7 +522,7 @@ mod tests {
 
     impl Slime {
         pub fn create_test(position: Vec2) -> Self {
-            Self::new(position, 1.0, 10.0, 0.1, 10.0, 2.0)
+            Self::new(position, SlimeConfig::default())
         }
     }
 
