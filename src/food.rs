@@ -35,20 +35,20 @@ impl Food {
 
 pub struct FoodController {
     /// Spawn time
-    spawn_time: f32,
+    pub spawn_time: f32,
     /// Maximum number of food instances that can exist at the same time.
-    limit: usize,
-    energy_range: (f32, f32),
-    speed_range: (f32, f32),
+    pub limit: f32,
+    pub energy_range: (f32, f32),
+    pub speed_range: (f32, f32),
     time: f32,
-    last_spawn_time: f32,
+    pub last_spawn_time: f32,
     pub population: Vec<Food>,
 }
 
 impl FoodController {
     pub fn new(
         spawn_time: f32,
-        limit: usize,
+        limit: f32,
         energy_range: (f32, f32),
         speed_range: (f32, f32),
     ) -> Self {
@@ -59,8 +59,13 @@ impl FoodController {
             speed_range,
             time: 0.0,
             last_spawn_time: 0.0,
-            population: Vec::with_capacity(limit),
+            population: Vec::with_capacity(limit as usize),
         }
+    }
+
+    /// Get FoodController's limit as usize
+    pub fn limit(&self) -> usize {
+        self.limit.ceil() as usize
     }
 
     pub fn set_time(&mut self, time: f32) {
@@ -73,14 +78,14 @@ impl FoodController {
     }
 
     pub fn spawn_n(&mut self, n: usize) {
-        let n = self.limit.saturating_sub(self.population.len()).min(n);
+        let n = self.limit().saturating_sub(self.population.len()).min(n);
         (0..n).for_each(|_| self.spawn_one())
     }
 
     /// Check timer to spawn one food instance.
     pub fn check_spawn(&mut self) {
         if (self.time - self.last_spawn_time) >= self.spawn_time {
-            if self.limit > self.population.len() {
+            if self.limit() > self.population.len() {
                 self.spawn_one();
             }
             self.last_spawn_time = self.time;

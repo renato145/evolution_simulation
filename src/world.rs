@@ -16,21 +16,25 @@ pub struct World {
     simulation_speed: f32,
     time: f32,
     settings_open: bool,
+    initial_food: f32,
+    initial_slimes: f32,
 }
 
 impl World {
     pub fn new(initial_food: usize, initial_slimes: usize) -> Self {
-        let mut food_controller = FoodController::new(5.0, 200, (5.0, 15.0), (0.5, 3.0));
-        food_controller.spawn_n(initial_food);
-        let mut slime_controller = SlimeController::new(1.8, 30.0, 0.1, 40.0, 300.0);
-        slime_controller.spawn_n(initial_slimes);
-        Self {
+        let food_controller = FoodController::new(5.0, 200.0, (5.0, 15.0), (0.5, 3.0));
+        let slime_controller = SlimeController::new(1.8, 30.0, 0.1, 40.0, 300.0);
+        let mut world = Self {
             food_controller,
             slime_controller,
             simulation_speed: 1.0,
             time: 0.0,
             settings_open: false,
-        }
+            initial_food: initial_food as f32,
+            initial_slimes: initial_slimes as f32,
+        };
+        world.reset();
+        world
     }
 
     pub async fn run(mut self) {
@@ -191,24 +195,94 @@ impl World {
             });
 
         if self.settings_open {
-            widgets::Window::new(hash!(), vec2(5.0, 35.0), vec2(300.0, 250.0))
+            widgets::Window::new(hash!(), vec2(5.0, 35.0), vec2(300.0, 300.0))
                 .label("Settings")
                 .ui(&mut *root_ui(), |ui| {
+                    ui.tree_node(hash!(), "Initial settings", |ui| {
+                        ui.slider(
+                            hash!(),
+                            "Food instances",
+                            0.0..1000.0,
+                            &mut self.initial_food,
+                        );
+                        ui.slider(
+                            hash!(),
+                            "Slime instances",
+                            0.0..1000.0,
+                            &mut self.initial_slimes,
+                        );
+                    });
+                    ui.separator();
                     ui.tree_node(hash!(), "Food", |ui| {
-                        ui.label(None, "Spawn time");
-                        ui.label(None, "Limit");
-                        ui.label(None, "Min energy");
-                        ui.label(None, "Max energy");
-                        ui.label(None, "Min speed");
-                        ui.label(None, "Max speed");
+                        ui.slider(
+                            hash!(),
+                            "Spawn time",
+                            1.0..20.0,
+                            &mut self.food_controller.spawn_time,
+                        );
+                        ui.slider(
+                            hash!(),
+                            "Limit",
+                            0.0..1000.0,
+                            &mut self.food_controller.limit,
+                        );
+                        ui.slider(
+                            hash!(),
+                            "Min energy",
+                            0.0..self.food_controller.energy_range.1,
+                            &mut self.food_controller.energy_range.0,
+                        );
+                        ui.slider(
+                            hash!(),
+                            "Max energy",
+                            self.food_controller.energy_range.0 + 1e-3..100.0,
+                            &mut self.food_controller.energy_range.1,
+                        );
+                        ui.slider(
+                            hash!(),
+                            "Min speed",
+                            0.0..self.food_controller.speed_range.1,
+                            &mut self.food_controller.speed_range.0,
+                        );
+                        ui.slider(
+                            hash!(),
+                            "Max speed",
+                            self.food_controller.speed_range.0 + 1e-3..10.0,
+                            &mut self.food_controller.speed_range.1,
+                        );
                     });
                     ui.separator();
                     ui.tree_node(hash!(), "Slimes", |ui| {
-                        ui.label(None, "Speed factor");
-                        ui.label(None, "Initial energy");
-                        ui.label(None, "Step cost");
-                        ui.label(None, "Vision range");
-                        ui.label(None, "Jump cooldown");
+                        ui.slider(
+                            hash!(),
+                            "Speed factor",
+                            0.0..10.0,
+                            &mut self.slime_controller.speed_factor,
+                        );
+                        ui.slider(
+                            hash!(),
+                            "Initial energy",
+                            5.0..100.0,
+                            &mut self.slime_controller.initial_energy,
+                        );
+                        ui.slider(
+                            hash!(),
+                            "Step cost",
+                            0.0..50.0,
+                            &mut self.slime_controller.initial_step_cost,
+                        );
+                        ui.slider(
+                            hash!(),
+                            "Vision range",
+                            10.0..200.0,
+                            &mut self.slime_controller.initial_vision_range,
+                        );
+                        ui.slider(
+                            hash!(),
+                            "Jump cooldown",
+                            50.0..2500.0,
+                            &mut self.slime_controller.initial_jump_cooldown,
+                        );
                     });
                     ui.separator();
                     ui.tree_node(hash!(), "Skills", |ui| {
@@ -218,13 +292,13 @@ impl World {
                     });
                     ui.separator();
                     if ui.button(None, "Reset") {
-                        println!("TODO");
+                        self.reset();
                     }
                     if ui.button(None, "Spawn food") {
-                        println!("TODO");
+                        self.food_controller.spawn_one();
                     }
                     if ui.button(None, "Spawn slime") {
-                        println!("TODO");
+                        self.slime_controller.spawn_one();
                     }
                 });
         }
@@ -243,6 +317,17 @@ impl World {
                 &mut self.simulation_speed,
             );
         });
+    }
+
+    /// Resets simulation
+    fn reset(&mut self) {
+        self.food_controller.population.clear();
+        self.food_controller.spawn_n(self.initial_food as usize);
+        self.food_controller.last_spawn_time = 0.0;
+        self.slime_controller.population.clear();
+        self.slime_controller.spawn_n(self.initial_slimes as usize);
+        self.slime_controller.last_time_cost = 0.0;
+        self.time = 0.0;
     }
 }
 

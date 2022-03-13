@@ -137,7 +137,12 @@ impl Skills {
 }
 
 #[derive(Clone)]
-pub struct Slime {
+pub struct SlimeConfig {
+
+}
+
+#[derive(Clone)]
+pub struct Slime<'a> {
     pub position: Vec2,
     pub state: SlimeState,
     pub skills: Skills,
@@ -151,9 +156,10 @@ pub struct Slime {
     last_breed: f32,
     next_skill_goal: f32,
     skill_path: SkillType,
+    config: &'a SlimeConfig,
 }
 
-impl Slime {
+impl<'a> Slime<'a> {
     pub fn new(
         position: Vec2,
         speed_factor: f32,
@@ -346,13 +352,13 @@ impl Slime {
 }
 
 pub struct SlimeController {
-    speed_factor: f32,
-    initial_energy: f32,
-    initial_step_cost: f32,
-    initial_vision_range: f32,
-    initial_jump_cooldown: f32,
+    pub speed_factor: f32,
+    pub initial_energy: f32,
+    pub initial_step_cost: f32,
+    pub initial_vision_range: f32,
+    pub initial_jump_cooldown: f32,
     time: f32,
-    last_time_cost: f32,
+    pub last_time_cost: f32,
     pub population: Vec<Slime>,
 }
 
