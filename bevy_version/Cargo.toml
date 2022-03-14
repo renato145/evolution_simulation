@@ -5,9 +5,8 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[lib]
-path = "src/lib.rs"
-
 [dependencies]
 # Remove dynamic feature for release version (https://bevyengine.org/learn/book/getting-started/setup/#enable-fast-compiles-optional)
 bevy = { version = "0.6", features = ["dynamic"] }
+bevy_prototype_lyon = "0.4"
+rand = "0.8"
