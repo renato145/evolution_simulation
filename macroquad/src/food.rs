@@ -1,5 +1,5 @@
 //! # Food entity.
-#![doc = include_str!("../docs/food.md")]
+#![doc = include_str!("../../docs/food.md")]
 use crate::utils::{random_screen_position, wrap_around};
 use macroquad::prelude::*;
 use macroquad::rand::gen_range;

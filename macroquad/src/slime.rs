@@ -1,5 +1,5 @@
 //! # Slime entity.
-#![doc = include_str!("../docs/slime.md")]
+#![doc = include_str!("../../docs/slime.md")]
 use crate::{
     food::Food,
     utils::{get_angle_direction, random_screen_position, wrap_around},

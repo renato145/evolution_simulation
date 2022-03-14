@@ -1,3 +1,3 @@
 # Evolution simulation
 
-Just playing with [macroquad](https://docs.rs/macroquad/latest/macroquad/) library.
+Just playing with game libraries to make simulations.
