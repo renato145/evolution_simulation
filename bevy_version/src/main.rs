@@ -1,5 +1,6 @@
 #![allow(clippy::type_complexity)]
 use bevy::prelude::*;
+use bevy_egui::{egui, EguiContext, EguiPlugin};
 use bevy_prototype_lyon::plugin::ShapePlugin;
 use food::{FoodCount, FoodPlugin};
 use rand::Rng;
@@ -20,11 +21,13 @@ fn main() {
         })
         .add_startup_system(setup)
         .add_plugins(DefaultPlugins)
+        .add_plugin(EguiPlugin)
         .add_plugin(ShapePlugin)
         .add_plugin(FoodPlugin)
         .add_plugin(SlimePlugin)
         .add_system(entity_move)
         .add_system(show_stats)
+        .add_system(show_ui)
         .add_system(bevy::input::system::exit_on_esc_system)
         .run();
 }
@@ -82,6 +85,13 @@ fn show_stats(
     let mut text = query.single_mut();
     text.sections[1].value = format!("{}", slime_count.0);
     text.sections[3].value = format!("{}", food_count.0);
+}
+
+fn show_ui(mut _egui_context: ResMut<EguiContext>) {
+    // TODO
+    // egui::Window::new("Hello").show(egui_context.ctx_mut(), |ui| {
+    //     ui.label("world");
+    // });
 }
 
 #[derive(Component)]

@@ -9,4 +9,5 @@ edition = "2021"
 # Remove dynamic feature for release version (https://bevyengine.org/learn/book/getting-started/setup/#enable-fast-compiles-optional)
 bevy = { version = "0.6", features = ["dynamic"] }
 bevy_prototype_lyon = "0.4"
+bevy_egui = { version = "0.12", default-features = false }
 rand = "0.8"
