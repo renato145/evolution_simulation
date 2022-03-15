@@ -1,15 +1,12 @@
 #![allow(clippy::type_complexity)]
 use bevy::prelude::*;
-use bevy_egui::{egui, EguiContext, EguiPlugin};
+use bevy_egui::EguiPlugin;
 use bevy_prototype_lyon::plugin::ShapePlugin;
-use food::{FoodCount, FoodPlugin};
-use rand::Rng;
-use slime::{SlimeCount, SlimePlugin};
-use std::f32::consts::PI;
-use utils::{polar_to_cartesian, wrap_around};
+use entities::EntitiesPlugin;
+use ui::SimulationUIPlugin;
 
-mod food;
-mod slime;
+mod entities;
+mod ui;
 mod utils;
 
 fn main() {
@@ -23,107 +20,13 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugin(EguiPlugin)
         .add_plugin(ShapePlugin)
-        .add_plugin(FoodPlugin)
-        .add_plugin(SlimePlugin)
-        .add_system(entity_move)
-        .add_system(show_stats)
-        .add_system(show_ui)
+        .add_plugin(EntitiesPlugin)
+        .add_plugin(SimulationUIPlugin)
         .add_system(bevy::input::system::exit_on_esc_system)
         .run();
 }
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup(mut commands: Commands) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
     commands.spawn_bundle(UiCameraBundle::default());
-
-    // Show stats
-    let style = TextStyle {
-        font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-        font_size: 20.0,
-        color: Color::WHITE,
-    };
-    commands.spawn_bundle(TextBundle {
-        text: Text {
-            sections: vec![
-                TextSection {
-                    value: "Slimes: ".to_string(),
-                    style: style.clone(),
-                },
-                TextSection {
-                    value: "".to_string(),
-                    style: style.clone(),
-                },
-                TextSection {
-                    value: "\nFoods: ".to_string(),
-                    style: style.clone(),
-                },
-                TextSection {
-                    value: "".to_string(),
-                    style,
-                },
-            ],
-            ..Default::default()
-        },
-        style: Style {
-            position_type: PositionType::Absolute,
-            position: Rect {
-                top: Val::Px(5.0),
-                left: Val::Px(5.0),
-                ..Default::default()
-            },
-            ..Default::default()
-        },
-        ..Default::default()
-    });
 }
-
-fn show_stats(
-    slime_count: Res<SlimeCount>,
-    food_count: Res<FoodCount>,
-    mut query: Query<&mut Text>,
-) {
-    let mut text = query.single_mut();
-    text.sections[1].value = format!("{}", slime_count.0);
-    text.sections[3].value = format!("{}", food_count.0);
-}
-
-fn show_ui(mut _egui_context: ResMut<EguiContext>) {
-    // TODO
-    // egui::Window::new("Hello").show(egui_context.ctx_mut(), |ui| {
-    //     ui.label("world");
-    // });
-}
-
-#[derive(Component)]
-struct Speed {
-    speed_factor: f32,
-    speed: Vec2,
-}
-
-impl Speed {
-    fn random_direction(speed_factor: f32) -> Self {
-        let mut rnd = rand::thread_rng();
-        let speed = polar_to_cartesian(speed_factor, rnd.gen_range(0.0..=PI * 2.0));
-        Speed {
-            speed_factor,
-            speed,
-        }
-    }
-
-    fn modify_direction(&mut self, direction: f32) {
-        self.speed = polar_to_cartesian(self.speed_factor, direction);
-    }
-}
-
-fn entity_move(windows: Res<Windows>, mut query: Query<(&mut Transform, &Speed)>) {
-    let window = windows.get_primary().unwrap();
-    let (w_2, h_2) = (window.width() / 2.0, window.height() / 2.0);
-    for (mut tf, speed) in query.iter_mut() {
-        tf.translation.x += speed.speed.x;
-        tf.translation.y += speed.speed.y;
-        wrap_around(&mut tf, w_2, h_2);
-    }
-}
-
-#[derive(Component)]
-struct Energy(f32);

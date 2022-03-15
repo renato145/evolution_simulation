@@ -1,8 +1,8 @@
-use crate::{
+use super::{
     food::{Food, FoodCount},
-    utils::{get_angle_direction, random_screen_position},
     Energy, Speed,
 };
+use crate::utils::{get_angle_direction, random_screen_position};
 use bevy::{math::Vec3Swizzles, prelude::*, sprite::collide_aabb::collide};
 use bevy_prototype_lyon::{
     prelude::{DrawMode, FillMode, GeometryBuilder},

@@ -1,4 +1,5 @@
-use crate::{utils::random_screen_position, Energy, Speed};
+use super::{Energy, Speed};
+use crate::utils::random_screen_position;
 use bevy::prelude::*;
 
 const FOOD_SPAWN_TIME: f32 = 0.2;
