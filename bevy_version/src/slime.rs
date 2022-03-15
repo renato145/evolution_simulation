@@ -1,6 +1,6 @@
 use crate::{
     food::{Food, FoodCount},
-    utils::random_screen_position,
+    utils::{get_angle_direction, random_screen_position},
     Energy, Speed,
 };
 use bevy::{math::Vec3Swizzles, prelude::*, sprite::collide_aabb::collide};
@@ -23,6 +23,7 @@ impl Plugin for SlimePlugin {
         app.insert_resource(SlimeSpawnTimer(Timer::from_seconds(SLIME_SPAWN_TIME, true)))
             .insert_resource(SlimeCount(0))
             .add_system(slime_spawn)
+            .add_system(slime_follow_food)
             .add_system(slime_eat)
             .add_system(slime_update_draw);
     }
@@ -69,6 +70,26 @@ fn slime_spawn(
             .insert(Speed::random_direction(SLIME_SPEED_FACTOR))
             .insert(SlimeState::Normal);
         slime_count.0 += 1;
+    }
+}
+
+fn slime_follow_food(
+    mut slime_query: Query<(&mut Speed, &Transform), With<Slime>>,
+    food_query: Query<&Transform, With<Food>>,
+) {
+    for (mut speed, slime_tf) in slime_query.iter_mut() {
+        let slime_pos = slime_tf.translation.xy();
+        if let Some((food_pos, _)) = food_query
+            .iter()
+            .map(|food_tf| {
+                let food_pos = food_tf.translation.xy();
+                (food_pos, slime_pos.distance(food_pos))
+            })
+            .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
+        {
+            let direction = get_angle_direction(slime_pos, food_pos);
+            speed.modify_direction(direction);
+        }
     }
 }
 

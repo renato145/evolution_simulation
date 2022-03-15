@@ -35,3 +35,9 @@ pub fn wrap_around(transform: &mut Transform, w_2: f32, h_2: f32) {
         transform.translation.y = h_2;
     }
 }
+
+/// Get angle direction from point a and b
+pub fn get_angle_direction(a: Vec2, b: Vec2) -> f32 {
+    let diff = b - a;
+    diff.y.atan2(diff.x)
+}
