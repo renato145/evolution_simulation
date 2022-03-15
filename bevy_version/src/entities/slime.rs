@@ -2,13 +2,16 @@ use super::{
     food::{Food, FoodCount},
     Energy, Speed,
 };
-use crate::utils::{get_angle_direction, random_screen_position};
+use crate::{
+    interactions::MousePosition,
+    utils::{get_angle_direction, random_screen_position},
+};
 use bevy::{math::Vec3Swizzles, prelude::*, sprite::collide_aabb::collide};
 use bevy_prototype_lyon::{
     prelude::{DrawMode, FillMode, GeometryBuilder},
     shapes,
 };
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 const SLIME_SPAWN_TIME: f32 = 2.5;
 const SLIME_SPEED_FACTOR: f32 = 1.8;
@@ -24,11 +27,13 @@ impl Plugin for SlimePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(SlimeSpawnTimer(Timer::from_seconds(SLIME_SPAWN_TIME, true)))
             .insert_resource(SlimeCount(0))
+            .insert_resource(HoveredSlimes(HashMap::new()))
             .add_system(slime_spawn)
             .add_system(slime_life_cost)
             .add_system(slime_follow_food)
             .add_system(slime_eat)
-            .add_system(slime_update_draw);
+            .add_system(slime_update_draw)
+            .add_system(hover_actions);
     }
 }
 
@@ -165,3 +170,81 @@ fn slime_update_draw(mut query: Query<(&Energy, &mut Transform), With<Slime>>) {
 //         }
 //     }
 // }
+
+#[derive(Component)]
+struct HoverDisplay;
+
+/// Map from `Slime` entity => `HoverDisplay` entity
+struct HoveredSlimes(HashMap<Entity, Entity>);
+
+fn hover_actions(
+    mut commands: Commands,
+    windows: Res<Windows>,
+    mouse_position: Res<MousePosition>,
+    mut hovered_slimes: ResMut<HoveredSlimes>,
+    mut hover_query: Query<(Entity, &mut Transform), (With<HoverDisplay>, Without<Slime>)>,
+    slime_query: Query<(Entity, &Transform), With<Slime>>,
+) {
+    if let Some(mouse_pos) = mouse_position.0 {
+        let window = windows.get_primary().unwrap();
+        let window_2 = Vec2::new(window.width() / 2.0, window.height() / 2.0);
+        let mouse_pos = mouse_pos - window_2;
+        let mut current_hovered_slimes = HashSet::new();
+
+        for (slime_entity, slime_tf) in slime_query.iter() {
+            let slime_pos = slime_tf.translation.xy();
+            let hover_range = slime_tf.scale.x + 50.0;
+            let target_hover = hovered_slimes.0.get(&slime_entity).copied();
+            if mouse_pos.distance(slime_pos) <= hover_range {
+                current_hovered_slimes.insert(slime_entity);
+                if let Some(target_hover) = target_hover {
+                    // Modify HoverDisplay position (follow the slime)
+                    if let Ok((_hovered_entity, mut hovered_tf)) = hover_query.get_mut(target_hover)
+                    {
+                        hovered_tf.translation.x = slime_pos.x;
+                        hovered_tf.translation.y = slime_pos.y;
+                    } else {
+                        warn!(
+                            "Tried to retrieve an invalid hovered entity: {:?} {:?}",
+                            target_hover, hovered_slimes.0
+                        );
+                    }
+                } else {
+                    // Create a new HoverDisplay
+                    let shape_bundle = SpriteBundle {
+                        sprite: Sprite {
+                            color: Color::rgba(1.0, 0.08, 0.58, 0.5),
+                            ..Default::default()
+                        },
+                        transform: Transform::from_xyz(slime_pos.x, slime_pos.y, 0.0)
+                            .with_scale(Vec3::new(hover_range, hover_range, 1.0)),
+                        ..Default::default()
+                    };
+                    let id = commands
+                        .spawn_bundle(shape_bundle)
+                        .insert(HoverDisplay)
+                        .id();
+                    hovered_slimes.0.insert(slime_entity, id);
+                }
+            }
+        }
+        // Remove non used HoverDiplays
+        let remove_slimes = hovered_slimes
+            .0
+            .keys()
+            .filter(|k| !current_hovered_slimes.contains(k))
+            .copied()
+            .collect::<Vec<_>>();
+        for remove_slime in remove_slimes {
+            if let Some(target_hover) = hovered_slimes.0.remove(&remove_slime) {
+                commands.entity(target_hover).despawn();
+            }
+        }
+    } else {
+        // Remove all HoverDisplay
+        hovered_slimes.0.clear();
+        for (hovered_entity, _) in hover_query.iter_mut() {
+            commands.entity(hovered_entity).despawn();
+        }
+    }
+}

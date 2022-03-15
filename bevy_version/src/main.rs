@@ -3,9 +3,11 @@ use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use bevy_prototype_lyon::plugin::ShapePlugin;
 use entities::EntitiesPlugin;
+use interactions::InteractionsPlugin;
 use ui::SimulationUIPlugin;
 
 mod entities;
+mod interactions;
 mod ui;
 mod utils;
 
@@ -21,6 +23,7 @@ fn main() {
         .add_plugin(EguiPlugin)
         .add_plugin(ShapePlugin)
         .add_plugin(EntitiesPlugin)
+        .add_plugin(InteractionsPlugin)
         .add_plugin(SimulationUIPlugin)
         .add_system(bevy::input::system::exit_on_esc_system)
         .run();
