@@ -1,3 +1,4 @@
+#![allow(clippy::type_complexity)]
 use bevy::prelude::*;
 use bevy_prototype_lyon::plugin::ShapePlugin;
 use food::{FoodCount, FoodPlugin};
@@ -73,6 +74,16 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     });
 }
 
+fn show_stats(
+    slime_count: Res<SlimeCount>,
+    food_count: Res<FoodCount>,
+    mut query: Query<&mut Text>,
+) {
+    let mut text = query.single_mut();
+    text.sections[1].value = format!("{}", slime_count.0);
+    text.sections[3].value = format!("{}", food_count.0);
+}
+
 #[derive(Component)]
 struct Speed(Vec2);
 
@@ -94,12 +105,5 @@ fn entity_move(windows: Res<Windows>, mut query: Query<(&mut Transform, &Speed)>
     }
 }
 
-fn show_stats(
-    slime_count: Res<SlimeCount>,
-    food_count: Res<FoodCount>,
-    mut query: Query<&mut Text>,
-) {
-    let mut text = query.single_mut();
-    text.sections[1].value = format!("{}", slime_count.0);
-    text.sections[3].value = format!("{}", food_count.0);
-}
+#[derive(Component)]
+struct Energy(f32);

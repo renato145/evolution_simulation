@@ -1,10 +1,11 @@
-use crate::{utils::random_screen_position, Speed};
+use crate::{utils::random_screen_position, Energy, Speed};
 use bevy::prelude::*;
 
-const FOOD_SPAWN_TIME: f32 = 0.2;
+const FOOD_SPAWN_TIME: f32 = 0.05;
 const FOOD_SIZE: f32 = 5.0;
+const FOOD_ENERGY: f32 = 10.0;
 const FOOD_SPEED_FACTOR: f32 = 1.2;
-const MAX_FOOD_INSTANCES: usize = 20;
+const MAX_FOOD_INSTANCES: usize = 100;
 
 pub struct FoodPlugin;
 
@@ -45,6 +46,7 @@ fn food_spawn(
         commands
             .spawn_bundle(shape_bundle)
             .insert(Food)
+            .insert(Energy(FOOD_ENERGY))
             .insert(Speed::random_direction(FOOD_SPEED_FACTOR));
         food_count.0 += 1;
     }

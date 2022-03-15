@@ -1,17 +1,20 @@
 use crate::{
     food::{Food, FoodCount},
     utils::random_screen_position,
-    Speed,
+    Energy, Speed,
 };
 use bevy::{math::Vec3Swizzles, prelude::*, sprite::collide_aabb::collide};
 use bevy_prototype_lyon::{
     prelude::{DrawMode, FillMode, GeometryBuilder},
     shapes,
 };
+use std::collections::HashSet;
 
-const SLIME_SPAWN_TIME: f32 = 1.5;
-const SLIME_SPEED_FACTOR: f32 = 1.8;
-const SLIME_INITIAL_SIZE: f32 = 10.0;
+const SLIME_SPAWN_TIME: f32 = 2.5;
+const SLIME_SPEED_FACTOR: f32 = 4.5;
+const SLIME_INITIAL_SIZE: f32 = 5.0;
+const SLIME_MAX_SIZE: f32 = 100.0;
+const SLIME_INITIAL_ENERGY: f32 = 30.0;
 
 pub struct SlimePlugin;
 
@@ -20,7 +23,8 @@ impl Plugin for SlimePlugin {
         app.insert_resource(SlimeSpawnTimer(Timer::from_seconds(SLIME_SPAWN_TIME, true)))
             .insert_resource(SlimeCount(0))
             .add_system(slime_spawn)
-            .add_system(slime_eat);
+            .add_system(slime_eat)
+            .add_system(slime_update_draw);
     }
 }
 
@@ -44,7 +48,7 @@ fn slime_spawn(
     mut timer: ResMut<SlimeSpawnTimer>,
     mut slime_count: ResMut<SlimeCount>,
 ) {
-    if (slime_count.0 <= 5) && timer.0.tick(time.delta()).just_finished() {
+    if (slime_count.0 < 30) && timer.0.tick(time.delta()).just_finished() {
         let pos = random_screen_position(windows.get_primary().unwrap());
         let shape = shapes::Circle {
             ..Default::default()
@@ -61,6 +65,7 @@ fn slime_spawn(
         commands
             .spawn_bundle(shape_bundle)
             .insert(Slime)
+            .insert(Energy(SLIME_INITIAL_ENERGY))
             .insert(Speed::random_direction(SLIME_SPEED_FACTOR))
             .insert(SlimeState::Normal);
         slime_count.0 += 1;
@@ -70,28 +75,55 @@ fn slime_spawn(
 fn slime_eat(
     mut commands: Commands,
     mut food_count: ResMut<FoodCount>,
-    mut slime_query: Query<(&mut SlimeState, &Transform), With<Slime>>,
-    food_query: Query<(Entity, &Transform), With<Food>>,
+    mut slime_query: Query<(&mut Energy, &mut SlimeState, &Transform), With<Slime>>,
+    food_query: Query<(Entity, &Energy, &Transform), (With<Food>, Without<Slime>)>,
 ) {
-    for (mut slime_state, slime_tf) in slime_query.iter_mut() {
+    let mut eaten_foods: HashSet<Entity> = HashSet::new();
+    for (mut slime_energy, mut slime_state, slime_tf) in slime_query.iter_mut() {
         *slime_state = SlimeState::Normal;
         let slime_sz = slime_tf.scale.abs().xy();
-        for (food_entity, food_tf) in food_query.iter() {
+        for (food_entity, food_energy, food_tf) in food_query.iter() {
+            // Skip already eaten foods
+            if eaten_foods.get(&food_entity).is_some() {
+                continue;
+            }
             let food_sz = food_tf.scale.abs().xy();
             let collision = collide(slime_tf.translation, slime_sz, food_tf.translation, food_sz);
-            if let Some(_) = collision {
+            if collision.is_some() {
                 *slime_state = SlimeState::Eating;
+                slime_energy.0 += food_energy.0;
                 commands.entity(food_entity).despawn();
                 food_count.0 -= 1;
+                eaten_foods.insert(food_entity);
             }
         }
     }
 }
 
-// fn update_slime_color(mut query: Query<&mut DrawMode, With<Slime>>) {
-//     for draw_mode in query.iter_mut() {
+fn slime_update_draw(mut query: Query<(&Energy, &mut Transform), With<Slime>>) {
+    for (energy, mut tf) in query.iter_mut() {
+        // Update size
+        let size = (SLIME_INITIAL_SIZE + energy.0 / 50.0).min(SLIME_MAX_SIZE);
+        tf.scale.x = size;
+        tf.scale.y = size;
+    }
+}
+
+// fn slime_update_draw(
+//     mut query: Query<(&Energy, &SlimeState, &mut Transform, &mut DrawMode), With<Slime>>,
+// ) {
+//     for (energy, state, mut tf, mut draw_mode) in query.iter_mut() {
+//         // Update size
+//         let size = (SLIME_INITIAL_SIZE + energy.0 / 50.0).min(SLIME_MAX_SIZE);
+//         tf.scale.x = size;
+//         tf.scale.y = size;
+//         // Update color
+//         let color = match state {
+//             SlimeState::Normal => Color::RED,
+//             SlimeState::Eating => Color::PINK,
+//         };
 //         if let DrawMode::Fill(fill) = draw_mode.as_mut() {
-//             fill.color = Color::PINK;
+//             fill.color = color;
 //         }
 //     }
 // }
