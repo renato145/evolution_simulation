@@ -2,10 +2,12 @@ use bevy::prelude::*;
 use bevy_prototype_lyon::plugin::ShapePlugin;
 use food::FoodPlugin;
 use rand::Rng;
+use slime::SlimePlugin;
 use std::f32::consts::PI;
 use utils::{polar_to_cartesian, wrap_around};
 
 mod food;
+mod slime;
 mod utils;
 
 fn main() {
@@ -19,6 +21,7 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugin(ShapePlugin)
         .add_plugin(FoodPlugin)
+        .add_plugin(SlimePlugin)
         .add_system(entity_move)
         .add_system(bevy::input::system::exit_on_esc_system)
         .run();
