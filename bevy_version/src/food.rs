@@ -1,7 +1,7 @@
 use crate::{utils::random_screen_position, Energy, Speed};
 use bevy::prelude::*;
 
-const FOOD_SPAWN_TIME: f32 = 0.05;
+const FOOD_SPAWN_TIME: f32 = 0.2;
 const FOOD_SIZE: f32 = 5.0;
 const FOOD_ENERGY: f32 = 10.0;
 const FOOD_SPEED_FACTOR: f32 = 1.2;

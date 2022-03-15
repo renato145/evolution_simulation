@@ -11,10 +11,12 @@ use bevy_prototype_lyon::{
 use std::collections::HashSet;
 
 const SLIME_SPAWN_TIME: f32 = 2.5;
-const SLIME_SPEED_FACTOR: f32 = 4.5;
+const SLIME_SPEED_FACTOR: f32 = 1.8;
 const SLIME_INITIAL_SIZE: f32 = 5.0;
 const SLIME_MAX_SIZE: f32 = 100.0;
 const SLIME_INITIAL_ENERGY: f32 = 30.0;
+const SLIME_VISION_RANGE: f32 = 45.0;
+const SLIME_STEP_COST: f32 = 0.1;
 
 pub struct SlimePlugin;
 
@@ -23,6 +25,7 @@ impl Plugin for SlimePlugin {
         app.insert_resource(SlimeSpawnTimer(Timer::from_seconds(SLIME_SPAWN_TIME, true)))
             .insert_resource(SlimeCount(0))
             .add_system(slime_spawn)
+            .add_system(slime_life_cost)
             .add_system(slime_follow_food)
             .add_system(slime_eat)
             .add_system(slime_update_draw);
@@ -73,13 +76,23 @@ fn slime_spawn(
     }
 }
 
+fn slime_life_cost(mut commands: Commands, mut query: Query<(Entity, &mut Energy), With<Slime>>) {
+    for (entity, mut energy) in query.iter_mut() {
+        energy.0 -= SLIME_STEP_COST;
+        if energy.0 <= 0.0 {
+            commands.entity(entity).despawn();
+        }
+    }
+}
+
 fn slime_follow_food(
     mut slime_query: Query<(&mut Speed, &Transform), With<Slime>>,
     food_query: Query<&Transform, With<Food>>,
 ) {
     for (mut speed, slime_tf) in slime_query.iter_mut() {
         let slime_pos = slime_tf.translation.xy();
-        if let Some((food_pos, _)) = food_query
+        // Get closest food position
+        if let Some((food_pos, distance)) = food_query
             .iter()
             .map(|food_tf| {
                 let food_pos = food_tf.translation.xy();
@@ -87,8 +100,11 @@ fn slime_follow_food(
             })
             .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
         {
-            let direction = get_angle_direction(slime_pos, food_pos);
-            speed.modify_direction(direction);
+            let slime_size = slime_tf.scale.x;
+            if distance <= (SLIME_VISION_RANGE + slime_size) {
+                let direction = get_angle_direction(slime_pos, food_pos);
+                speed.modify_direction(direction);
+            }
         }
     }
 }
@@ -130,10 +146,11 @@ fn slime_update_draw(mut query: Query<(&Energy, &mut Transform), With<Slime>>) {
     }
 }
 
-// fn slime_update_draw(
-//     mut query: Query<(&Energy, &SlimeState, &mut Transform, &mut DrawMode), With<Slime>>,
+// fn slime_update_draw2(
+//     mut query: Query<(&Energy, &SlimeState, &mut Transform, &mut DrawMode, &mut Sprite), With<Slime>>,
 // ) {
-//     for (energy, state, mut tf, mut draw_mode) in query.iter_mut() {
+//     for (energy, state, mut tf, mut draw_mode, mut sprite) in query.iter_mut() {
+//         sprite.color
 //         // Update size
 //         let size = (SLIME_INITIAL_SIZE + energy.0 / 50.0).min(SLIME_MAX_SIZE);
 //         tf.scale.x = size;
