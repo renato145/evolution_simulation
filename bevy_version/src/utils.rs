@@ -1,5 +1,5 @@
 #![allow(unused)]
-use bevy::{math::Vec2, prelude::Transform, window::Window};
+use bevy::prelude::*;
 use rand::Rng;
 
 pub fn random_screen_position(window: &Window) -> Vec2 {

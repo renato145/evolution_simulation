@@ -1,7 +1,7 @@
 use crate::{utils::random_screen_position, Speed};
 use bevy::prelude::*;
 
-const FOOD_SPAWN_TIME: f32 = 0.5;
+const FOOD_SPAWN_TIME: f32 = 0.2;
 const FOOD_SIZE: f32 = 5.0;
 const FOOD_SPEED_FACTOR: f32 = 1.2;
 const MAX_FOOD_INSTANCES: usize = 20;
@@ -16,12 +16,12 @@ impl Plugin for FoodPlugin {
     }
 }
 
-struct FoodCount(usize);
+pub struct FoodCount(pub usize);
 
 struct FoodSpawnTimer(Timer);
 
 #[derive(Component)]
-struct Food;
+pub struct Food;
 
 fn food_spawn(
     mut commands: Commands,
@@ -35,10 +35,10 @@ fn food_spawn(
         let shape_bundle = SpriteBundle {
             sprite: Sprite {
                 color: Color::rgba(0.0, 1.0, 0.0, 0.75),
-                custom_size: Some(Vec2::new(FOOD_SIZE, FOOD_SIZE)),
                 ..Default::default()
             },
-            transform: Transform::from_xyz(pos.x, pos.y, 0.0),
+            transform: Transform::from_xyz(pos.x, pos.y, 0.0)
+                .with_scale(Vec3::new(FOOD_SIZE, FOOD_SIZE, 1.0)),
             ..Default::default()
         };
 
