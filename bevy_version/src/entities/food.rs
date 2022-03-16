@@ -39,7 +39,7 @@ fn food_spawn(
                 color: Color::rgba(0.0, 1.0, 0.0, 0.75),
                 ..Default::default()
             },
-            transform: Transform::from_xyz(pos.x, pos.y, 0.0)
+            transform: Transform::from_xyz(pos.x, pos.y, 1.0)
                 .with_scale(Vec3::new(FOOD_SIZE, FOOD_SIZE, 1.0)),
             ..Default::default()
         };

@@ -8,15 +8,15 @@ use crate::{
 };
 use bevy::{math::Vec3Swizzles, prelude::*, sprite::collide_aabb::collide};
 use bevy_prototype_lyon::{
-    prelude::{DrawMode, FillMode, GeometryBuilder},
+    prelude::{DrawMode, FillMode, GeometryBuilder, Path, ShapePath, StrokeMode},
     shapes,
 };
 use std::collections::{HashMap, HashSet};
 
 const SLIME_SPAWN_TIME: f32 = 2.5;
 const SLIME_SPEED_FACTOR: f32 = 2.8;
-const SLIME_INITIAL_SIZE: f32 = 5.0;
-const SLIME_MAX_SIZE: f32 = 100.0;
+const SLIME_INITIAL_RADIUS: f32 = 5.0;
+const SLIME_MAX_RADIUS: f32 = 100.0;
 const SLIME_INITIAL_ENERGY: f32 = 30.0;
 const SLIME_VISION_RANGE: f32 = 45.0;
 const SLIME_STEP_COST: f32 = 0.1;
@@ -49,6 +49,9 @@ enum SlimeState {
     Eating,
 }
 
+#[derive(Component)]
+struct SlimeRadius(f32);
+
 // TODO: final game should not spawn slimes
 fn slime_spawn(
     mut commands: Commands,
@@ -60,21 +63,19 @@ fn slime_spawn(
     if (slime_count.0 < 30) && timer.0.tick(time.delta()).just_finished() {
         let pos = random_screen_position(windows.get_primary().unwrap());
         let shape = shapes::Circle {
+            radius: SLIME_INITIAL_RADIUS,
             ..Default::default()
         };
         let shape_bundle = GeometryBuilder::build_as(
             &shape,
             DrawMode::Fill(FillMode::color(Color::RED)),
-            Transform::from_xyz(pos.x, pos.y, 0.0).with_scale(Vec3::new(
-                SLIME_INITIAL_SIZE,
-                SLIME_INITIAL_SIZE,
-                1.0,
-            )),
+            Transform::from_xyz(pos.x, pos.y, 0.0),
         );
         commands
             .spawn_bundle(shape_bundle)
             .insert(Slime)
             .insert(Energy(SLIME_INITIAL_ENERGY))
+            .insert(SlimeRadius(SLIME_INITIAL_RADIUS))
             .insert(Speed::random_direction(SLIME_SPEED_FACTOR))
             .insert(SlimeState::Normal);
         slime_count.0 += 1;
@@ -117,13 +118,13 @@ fn slime_follow_food(
 fn slime_eat(
     mut commands: Commands,
     mut food_count: ResMut<FoodCount>,
-    mut slime_query: Query<(&mut Energy, &mut SlimeState, &Transform), With<Slime>>,
+    mut slime_query: Query<(&mut Energy, &mut SlimeState, &SlimeRadius, &Transform), With<Slime>>,
     food_query: Query<(Entity, &Energy, &Transform), (With<Food>, Without<Slime>)>,
 ) {
     let mut eaten_foods: HashSet<Entity> = HashSet::new();
-    for (mut slime_energy, mut slime_state, slime_tf) in slime_query.iter_mut() {
+    for (mut slime_energy, mut slime_state, slime_sz, slime_tf) in slime_query.iter_mut() {
         *slime_state = SlimeState::Normal;
-        let slime_sz = slime_tf.scale.abs().xy();
+        let slime_sz = Vec2::splat(slime_sz.0);
         for (food_entity, food_energy, food_tf) in food_query.iter() {
             // Skip already eaten foods
             if eaten_foods.get(&food_entity).is_some() {
@@ -142,12 +143,15 @@ fn slime_eat(
     }
 }
 
-fn slime_update_draw(mut query: Query<(&Energy, &mut Transform), With<Slime>>) {
-    for (energy, mut tf) in query.iter_mut() {
+fn slime_update_draw(mut query: Query<(&Energy, &mut SlimeRadius, &mut Path), With<Slime>>) {
+    for (energy, mut radius, mut path) in query.iter_mut() {
         // Update size
-        let size = (SLIME_INITIAL_SIZE + energy.0 / 10.0).min(SLIME_MAX_SIZE);
-        tf.scale.x = size;
-        tf.scale.y = size;
+        radius.0 = (SLIME_INITIAL_RADIUS + energy.0 / 10.0).min(SLIME_MAX_RADIUS);
+        let circle = shapes::Circle {
+            radius: radius.0,
+            ..Default::default()
+        };
+        *path = ShapePath::build_as(&circle);
     }
 }
 
@@ -182,8 +186,8 @@ fn hover_actions(
     windows: Res<Windows>,
     mouse_position: Res<MousePosition>,
     mut hovered_slimes: ResMut<HoveredSlimes>,
-    mut hover_query: Query<(Entity, &mut Transform), (With<HoverDisplay>, Without<Slime>)>,
-    slime_query: Query<(Entity, &Transform), With<Slime>>,
+    mut hover_query: Query<(Entity, &mut Path), (With<HoverDisplay>, Without<Slime>)>,
+    slime_query: Query<(Entity, &Transform, &SlimeRadius), With<Slime>>,
 ) {
     if let Some(mouse_pos) = mouse_position.0 {
         let window = windows.get_primary().unwrap();
@@ -191,19 +195,20 @@ fn hover_actions(
         let mouse_pos = mouse_pos - window_2;
         let mut current_hovered_slimes = HashSet::new();
 
-        for (slime_entity, slime_tf) in slime_query.iter() {
+        for (slime_entity, slime_tf, slime_radius) in slime_query.iter() {
             let slime_pos = slime_tf.translation.xy();
-            let hover_range = slime_tf.scale.x + SLIME_VISION_RANGE;
+            let hover_range = slime_radius.0 + SLIME_VISION_RANGE;
             let target_hover = hovered_slimes.0.get(&slime_entity).copied();
             if mouse_pos.distance(slime_pos) <= hover_range {
                 current_hovered_slimes.insert(slime_entity);
                 if let Some(target_hover) = target_hover {
-                    // Modify HoverDisplay position (follow the slime)
-                    if let Ok((_hovered_entity, mut hovered_tf)) = hover_query.get_mut(target_hover)
-                    {
-                        hovered_tf.translation.x = slime_pos.x;
-                        hovered_tf.translation.y = slime_pos.y;
-                        hovered_tf.scale = Vec3::new(hover_range, hover_range, 1.0);
+                    // Modify HoverDisplay
+                    if let Ok((_, mut path)) = hover_query.get_mut(target_hover) {
+                        let circle = shapes::Circle {
+                            radius: hover_range,
+                            ..Default::default()
+                        };
+                        *path = ShapePath::build_as(&circle);
                     } else {
                         warn!(
                             "Tried to retrieve an invalid hovered entity: {:?} {:?}",
@@ -212,20 +217,23 @@ fn hover_actions(
                     }
                 } else {
                     // Create a new HoverDisplay
-                    let shape_bundle = SpriteBundle {
-                        sprite: Sprite {
-                            color: Color::rgba(1.0, 0.08, 0.58, 0.5),
-                            ..Default::default()
-                        },
-                        transform: Transform::from_xyz(slime_pos.x, slime_pos.y, 0.0)
-                            .with_scale(Vec3::new(hover_range, hover_range, 1.0)),
+                    let shape = shapes::Circle {
+                        radius: hover_range,
                         ..Default::default()
                     };
-                    let id = commands
+                    let shape_bundle = GeometryBuilder::build_as(
+                        &shape,
+                        DrawMode::Stroke(StrokeMode::color(Color::YELLOW)),
+                        Transform::default(),
+                    );
+                    let new_target_hover = commands
                         .spawn_bundle(shape_bundle)
                         .insert(HoverDisplay)
                         .id();
-                    hovered_slimes.0.insert(slime_entity, id);
+                    commands
+                        .entity(slime_entity)
+                        .push_children(&[new_target_hover]);
+                    hovered_slimes.0.insert(slime_entity, new_target_hover);
                 }
             }
         }
