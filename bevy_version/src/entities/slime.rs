@@ -14,7 +14,7 @@ use bevy_prototype_lyon::{
 use std::collections::{HashMap, HashSet};
 
 const SLIME_SPAWN_TIME: f32 = 2.5;
-const SLIME_SPEED_FACTOR: f32 = 1.8;
+const SLIME_SPEED_FACTOR: f32 = 2.8;
 const SLIME_INITIAL_SIZE: f32 = 5.0;
 const SLIME_MAX_SIZE: f32 = 100.0;
 const SLIME_INITIAL_ENERGY: f32 = 30.0;
@@ -145,7 +145,7 @@ fn slime_eat(
 fn slime_update_draw(mut query: Query<(&Energy, &mut Transform), With<Slime>>) {
     for (energy, mut tf) in query.iter_mut() {
         // Update size
-        let size = (SLIME_INITIAL_SIZE + energy.0 / 50.0).min(SLIME_MAX_SIZE);
+        let size = (SLIME_INITIAL_SIZE + energy.0 / 10.0).min(SLIME_MAX_SIZE);
         tf.scale.x = size;
         tf.scale.y = size;
     }
@@ -193,7 +193,7 @@ fn hover_actions(
 
         for (slime_entity, slime_tf) in slime_query.iter() {
             let slime_pos = slime_tf.translation.xy();
-            let hover_range = slime_tf.scale.x + 50.0;
+            let hover_range = slime_tf.scale.x + SLIME_VISION_RANGE;
             let target_hover = hovered_slimes.0.get(&slime_entity).copied();
             if mouse_pos.distance(slime_pos) <= hover_range {
                 current_hovered_slimes.insert(slime_entity);
@@ -203,6 +203,7 @@ fn hover_actions(
                     {
                         hovered_tf.translation.x = slime_pos.x;
                         hovered_tf.translation.y = slime_pos.y;
+                        hovered_tf.scale = Vec3::new(hover_range, hover_range, 1.0);
                     } else {
                         warn!(
                             "Tried to retrieve an invalid hovered entity: {:?} {:?}",
