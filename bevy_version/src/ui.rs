@@ -1,5 +1,8 @@
 use crate::entities::{food::FoodCount, slime::SlimeCount};
-use bevy::prelude::*;
+use bevy::{
+    diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin},
+    prelude::*,
+};
 use bevy_egui::EguiContext;
 
 pub struct SimulationUIPlugin;
@@ -7,6 +10,7 @@ pub struct SimulationUIPlugin;
 impl Plugin for SimulationUIPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(setup)
+            .add_plugin(FrameTimeDiagnosticsPlugin::default())
             .add_system(show_stats)
             .add_system(show_ui);
     }
@@ -23,7 +27,15 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         text: Text {
             sections: vec![
                 TextSection {
-                    value: "Slimes: ".to_string(),
+                    value: "Fps: ".to_string(),
+                    style: style.clone(),
+                },
+                TextSection {
+                    value: "".to_string(),
+                    style: style.clone(),
+                },
+                TextSection {
+                    value: "\nSlimes: ".to_string(),
                     style: style.clone(),
                 },
                 TextSection {
@@ -55,13 +67,20 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 }
 
 fn show_stats(
+    diagnostics: Res<Diagnostics>,
     slime_count: Res<SlimeCount>,
     food_count: Res<FoodCount>,
     mut query: Query<&mut Text>,
 ) {
     let mut text = query.single_mut();
-    text.sections[1].value = format!("{}", slime_count.0);
-    text.sections[3].value = format!("{}", food_count.0);
+    if let Some(fps) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
+        if let Some(average) = fps.average() {
+            text.sections[1].value = format!("{:.2}", average);
+        }
+    };
+    // text.sections[1].value = format!("{}", slime_count.0);
+    text.sections[3].value = format!("{}", slime_count.0);
+    text.sections[5].value = format!("{}", food_count.0);
 }
 
 fn show_ui(mut _egui_context: ResMut<EguiContext>) {
