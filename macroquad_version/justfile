@@ -1,7 +1,0 @@
-serve:
-	@if ! [ -x "$(command -v http)" ]; then echo "Install http server: cargo install https"; exit 1; fi
-	http web/
-
-wasm-build:
-	cargo build --target wasm32-unknown-unknown --release
-	cp target/wasm32-unknown-unknown/release/evolution_simulation.wasm web/
